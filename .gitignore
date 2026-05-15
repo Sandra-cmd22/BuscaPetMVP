@@ -1,0 +1,25 @@
+# dependencies
+node_modules/
+
+# build
+dist/
+buscapet/.next/
+buscapet/out/
+
+# env (nunca commitar chaves)
+.env
+.env.*
+!.env.example
+
+# logs & OS
+npm-debug.log*
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
+
+# misc
+*.pem
+.vercel
+*.tsbuildinfo
