@@ -2311,7 +2311,6 @@ export default function App() {
 
   return (
     <div className="screen relative w-full min-h-[100dvh] flex justify-center">
-      <div className="background pointer-events-none absolute inset-0 bg-[#00866f]" />
       <div
         className={`content relative z-10 w-full max-w-md flex-1 min-h-0 overflow-x-hidden flex flex-col ${hasBottomNav ? "pb-[calc(70px+env(safe-area-inset-bottom))]" : "pb-0"}`}
       >
