@@ -30,7 +30,7 @@ body {
   height: 100%;
   height: 100vh;
   height: 100dvh;
-  background-color: #00866f;
+  background: transparent;
   -webkit-font-smoothing: antialiased;
   -webkit-touch-callout: none;
   -webkit-user-select: none;
@@ -49,6 +49,7 @@ body {
   height: 100vh;
   height: 100dvh;
   background-color: #00866f;
+  padding-top: env(safe-area-inset-top);
   display: flex;
   flex-direction: column;
   overflow: hidden;
