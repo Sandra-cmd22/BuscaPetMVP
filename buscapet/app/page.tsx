@@ -1,17 +1,26 @@
-import { createClient } from '@/utils/supabase/server'
-import { cookies } from 'next/headers'
+'use client'
 
-export default async function Page() {
-  const cookieStore = await cookies()
-  const supabase = createClient(cookieStore)
+import { supabase } from '@/lib/supabase'
 
-  const { data: todos } = await supabase.from('todos').select()
+export default function Home() {
+
+  const handleGoogleLogin = async () => {
+    await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: typeof window !== 'undefined' ? window.location.origin : undefined,
+      },
+    })
+  }
 
   return (
-    <ul>
-      {todos?.map((todo) => (
-        <li key={todo.id}>{todo.name}</li>
-      ))}
-    </ul>
+    <div className="flex items-center justify-center min-h-screen">
+      <button
+        onClick={handleGoogleLogin}
+        className="bg-black text-white px-6 py-3 rounded-xl"
+      >
+        Entrar com Google
+      </button>
+    </div>
   )
 }

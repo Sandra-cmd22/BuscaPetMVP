@@ -1,6 +1,27 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
+import { supabase } from "@/lib/supabase";
+import { signInWithGoogle } from "@/lib/auth";
+import {
+  createPet,
+  deletePet,
+  markPetAsFound,
+  updatePet,
+  syncMyPetContactSnapshot,
+  uploadPetImage,
+} from "@/services/petService";
+import { usePets } from "@/hooks/usePets";
+import { useMyPets } from "@/hooks/useMyPets";
+import type { Pet as DbPet } from "@/types/pet";
+import {
+  formatUserLocation,
+  formatUserPhone,
+  type UserData,
+} from "@/lib/user";
+import { PET_STATUS, normalizePetStatus, type PetStatus } from "@/lib/petStatus";
+import { useProfile } from "@/hooks/useProfile";
+import { CompleteProfileModal } from "@/components/CompleteProfileModal";
 import {
   Search,
   MapPin,
@@ -9,12 +30,14 @@ import {
   LogOut,
   Edit,
   Phone,
+  Mail,
   Home,
   User,
   PlusCircle,
-  ChevronDown,
   Heart,
   MessageCircle,
+  PawPrint,
+  CheckCircle2,
   Cat,
   Dog,
 } from "lucide-react";
@@ -27,7 +50,8 @@ type Screen =
   | "feed"
   | "report"
   | "detail"
-  | "profile";
+  | "profile"
+  | "my-pets";
 
 interface Pet {
   id: string;
@@ -36,10 +60,11 @@ interface Pet {
   gender: "Macho" | "Fêmea";
   size: "Pequeno" | "Médio" | "Grande";
   description: string;
+  lastSeen: string | null;
   neighborhood: string;
   city: string;
   distance: string;
-  status: "perdido" | "encontrado";
+  status: PetStatus;
   photo: string;
   ownerName: string;
   ownerPhone: string;
@@ -48,90 +73,76 @@ interface Pet {
   reward?: boolean;
 }
 
-interface UserData {
-  id: string;
-  name: string;
-  handle: string;
-  city: string;
-  phone: string;
-  email: string;
-  avatar: string;
+// ─── DB → Display mapper ──────────────────────────────────────────────────────
+
+const DOG_PLACEHOLDER =
+  "https://images.unsplash.com/photo-1552053831-71594a27632d?w=600&h=400&fit=crop&auto=format";
+const CAT_PLACEHOLDER =
+  "https://images.unsplash.com/photo-1574158622682-e40e69881006?w=600&h=400&fit=crop&auto=format";
+
+function resolvePetPhotoUrl(dbPet: DbPet): string {
+  if (!dbPet.foto_url) {
+    return dbPet.tipo === "gato" ? CAT_PLACEHOLDER : DOG_PLACEHOLDER;
+  }
+
+  const raw = dbPet.foto_url.trim();
+
+  // Extract object path from any legacy URL/path format and always rebuild a public URL.
+  let normalizedPath = raw
+    .replace("/storage/v1/object/public/Pets/", "/storage/v1/object/public/pets/")
+    .replace(/^[a-z]+:\/\/[^/]+\/storage\/v1\/object\/public\/pets\//i, "")
+    .replace(/^[a-z]+:\/\/[^/]+\/storage\/v1\/object\/pets\//i, "")
+    .replace(/^\/storage\/v1\/object\/public\/pets\//i, "")
+    .replace(/^\/storage\/v1\/object\/pets\//i, "")
+    .replace(/^pets\//i, "")
+    .trim();
+
+  if (!normalizedPath.includes("/")) {
+    normalizedPath = `${dbPet.user_id}/${normalizedPath}`;
+  }
+
+  const { data } = supabase.storage.from("pets").getPublicUrl(normalizedPath);
+  return data.publicUrl;
 }
 
-// ─── Mock Data ────────────────────────────────────────────────────────────────
+function mapDbPetToDisplay(dbPet: DbPet): Pet {
+  const ownerName =
+    dbPet.owner_name?.trim() ||
+    dbPet.contato_nome?.trim() ||
+    "Nome não informado";
+  const ownerPhone =
+    dbPet.owner_phone?.trim() ||
+    dbPet.contato_telefone?.trim() ||
+    "";
 
-const MOCK_USER: UserData = {
-  id: "u1",
-  name: "Sandra Oliveira",
-  handle: "@sanoliveira",
-  city: "Limoeiro do Norte",
-  phone: "(85) 9 9919-9360",
-  email: "sandra@email.com",
-  avatar:
-    "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=200&h=200&fit=crop&auto=format",
-};
+  return {
+    id: dbPet.id,
+    name: dbPet.nome,
+    type: dbPet.tipo,
+    gender: (dbPet.sexo as "Macho" | "Fêmea") ?? "Macho",
+    size: (dbPet.porte as "Pequeno" | "Médio" | "Grande") ?? "Médio",
+    description: dbPet.descricao ?? "Sem descrição adicional.",
+    lastSeen: dbPet.last_seen ?? null,
+    neighborhood: dbPet.bairro,
+    city: dbPet.cidade,
+    distance: dbPet.cidade,
+    status: normalizePetStatus(dbPet.status),
+    photo: resolvePetPhotoUrl(dbPet),
+    ownerName,
+    ownerPhone,
+    postedAt: dbPet.created_at,
+    userId: dbPet.user_id,
+    reward: dbPet.recompensa,
+  };
+}
 
-const MOCK_PETS: Pet[] = [
-  {
-    id: "p1",
-    name: "PIPO",
-    type: "cachorro",
-    gender: "Macho",
-    size: "Pequeno",
-    description:
-      "Cachorro perdido perto do campo florestal, dócil. Responde pelo nome de Pipo, é super assustado.",
-    neighborhood: "Sitio São Raimundo",
-    city: "Limoeiro do Norte",
-    distance: "2km de você",
-    status: "perdido",
-    reward: true,
-    photo:
-      "https://images.unsplash.com/photo-1552053831-71594a27632d?w=600&h=400&fit=crop&auto=format",
-    ownerName: "Luiz Alves",
-    ownerPhone: "5585999990001",
-    postedAt: "2024-07-14T10:30:00Z",
-    userId: "u2",
-  },
-  {
-    id: "p2",
-    name: "LUKA",
-    type: "gato",
-    gender: "Fêmea",
-    size: "Pequeno",
-    description:
-      "Gata preta, pelagem macia. Responde pelo nome de Luka, é assustada mas não arranha.",
-    neighborhood: "Centro",
-    city: "Limoeiro do Norte",
-    distance: "4km de você",
-    status: "encontrado",
-    photo:
-      "https://images.unsplash.com/photo-1574158622682-e40e69881006?w=600&h=400&fit=crop&auto=format",
-    ownerName: "Maria Silva",
-    ownerPhone: "5585999990002",
-    postedAt: "2024-07-10T15:00:00Z",
-    userId: "u3",
-  },
-  {
-    id: "p3",
-    name: "PANTERA",
-    type: "gato",
-    gender: "Macho",
-    size: "Médio",
-    description:
-      "Gato preto de porte médio, pelagem curta, olhos verdes. Usa coleira vermelha.",
-    neighborhood: "Jardim das Flores",
-    city: "Limoeiro do Norte",
-    distance: "1km de você",
-    status: "perdido",
-    reward: true,
-    photo:
-      "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=600&h=400&fit=crop&auto=format",
-    ownerName: "José Almeida",
-    ownerPhone: "5585999990003",
-    postedAt: "2024-07-13T08:00:00Z",
-    userId: "u4",
-  },
-];
+function normalizeBrazilPhone(input: string): string {
+  const digits = input.replace(/\D/g, "");
+  if (!digits) return "";
+  if (digits.startsWith("55") && digits.length >= 12) return digits;
+  if (digits.length >= 10) return `55${digits}`;
+  return "";
+}
 
 // ─── Shared Components ────────────────────────────────────────────────────────
 
@@ -355,12 +366,12 @@ function PetCard({
       onClick={() => onDetail(pet)}
       className="bg-card rounded-[12px] shadow-sm relative overflow-hidden flex h-[160px] border border-border/30 cursor-pointer active:scale-[0.98] transition-transform"
     >
-      {pet.status === "perdido" && pet.reward && (
+      {pet.status === PET_STATUS.LOST && pet.reward && (
         <div className="absolute -right-9 top-4 bg-destructive text-destructive-foreground text-[10px] font-bold py-1 px-10 rotate-45 z-10 shadow-sm uppercase tracking-wider">
           Recompensa
         </div>
       )}
-      {pet.status === "encontrado" && (
+      {pet.status === PET_STATUS.FOUND && (
         <div className="absolute -right-9 top-4 bg-muted-foreground text-white text-[10px] font-bold py-1 px-10 rotate-45 z-10 shadow-sm uppercase tracking-wider">
           Encontrado
         </div>
@@ -370,7 +381,12 @@ function PetCard({
         <img
           src={pet.photo}
           alt={pet.name}
-          className={`w-full h-full object-cover ${pet.status === "encontrado" ? "opacity-70 grayscale-[30%]" : ""}`}
+          onError={(event) => {
+            const img = event.currentTarget;
+            img.onerror = null;
+            img.src = pet.type === "gato" ? CAT_PLACEHOLDER : DOG_PLACEHOLDER;
+          }}
+          className={`w-full h-full object-cover ${pet.status === PET_STATUS.FOUND ? "opacity-70 grayscale-[30%]" : ""}`}
         />
       </div>
 
@@ -391,8 +407,14 @@ function PetCard({
           <p className="text-[13px] font-bold text-primary font-body flex items-center gap-1">
             <MapPin size={12} /> {pet.distance}
           </p>
-          {pet.status === "perdido" && (
-            <button className="bg-secondary text-secondary-foreground font-bold text-[12px] font-display py-1.5 px-4 rounded-full shadow-sm hover:opacity-90">
+          {pet.status === PET_STATUS.LOST && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onDetail(pet);
+              }}
+              className="bg-secondary text-secondary-foreground font-bold text-[12px] font-display py-1.5 px-4 rounded-full shadow-sm hover:opacity-90"
+            >
               Você viu?
             </button>
           )}
@@ -405,12 +427,16 @@ function PetCard({
 function BottomNav({
   screen,
   onNavigate,
+  profileComplete,
 }: {
   screen: Screen;
   onNavigate: (s: Screen) => void;
+  profileComplete: boolean;
 }) {
   if (screen === "login" || screen === "onboarding")
     return null;
+
+  if (!profileComplete) return null;
 
   return (
     <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white border-t border-border/30 z-50 h-[70px] pb-[env(safe-area-inset-bottom)]">
@@ -451,14 +477,14 @@ function BottomNav({
           <User
             size={24}
             className={
-              screen === "profile"
+              screen === "profile" || screen === "my-pets"
                 ? "text-primary"
                 : "text-muted-foreground"
             }
-            strokeWidth={screen === "profile" ? 2.5 : 2}
+            strokeWidth={screen === "profile" || screen === "my-pets" ? 2.5 : 2}
           />
           <span
-            className={`text-[10px] font-bold ${screen === "profile" ? "text-primary" : "text-muted-foreground"}`}
+            className={`text-[10px] font-bold ${screen === "profile" || screen === "my-pets" ? "text-primary" : "text-muted-foreground"}`}
           >
             Perfil
           </span>
@@ -474,6 +500,16 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
   const [view, setView] = useState<
     "choice" | "login" | "register"
   >("choice");
+  const [googleLoading, setGoogleLoading] = useState(false);
+
+  const handleGoogleLogin = async () => {
+    setGoogleLoading(true);
+    const { error } = await signInWithGoogle();
+    if (error) {
+      console.error(error.message);
+      setGoogleLoading(false);
+    }
+  };
 
   if (view === "login") {
     return (
@@ -545,7 +581,13 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
           </div>
 
           <div className="mt-6 flex justify-center gap-6 pb-8">
-            <button className="w-[40px] h-[40px] rounded-full flex items-center justify-center hover:bg-gray-50 transition-colors">
+            <button
+              type="button"
+              onClick={handleGoogleLogin}
+              disabled={googleLoading}
+              aria-label="Entrar com Google"
+              className="w-[40px] h-[40px] rounded-full flex items-center justify-center hover:bg-gray-50 transition-colors disabled:opacity-50"
+            >
               <svg
                 width="24"
                 height="24"
@@ -710,28 +752,98 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
 
 function FeedScreen({
   pets,
+  petsLoading,
   onDetail,
+  onOpenProfile,
+  onEditLocation,
   user,
 }: {
   pets: Pet[];
+  petsLoading: boolean;
   onDetail: (pet: Pet) => void;
+  onOpenProfile: () => void;
+  onEditLocation: () => void;
   user: UserData;
 }) {
   const [activeFilter, setActiveFilter] = useState<
     "Todos" | "Perdidos" | "Encontrados" | "Cachorros" | "Gatos"
   >("Todos");
+  const [search, setSearch] = useState("");
 
   const filteredPets = pets.filter((pet) => {
     if (activeFilter === "Todos") return true;
     if (activeFilter === "Perdidos")
-      return pet.status === "perdido";
+      return pet.status === PET_STATUS.LOST;
     if (activeFilter === "Encontrados")
-      return pet.status === "encontrado";
+      return pet.status === PET_STATUS.FOUND;
     if (activeFilter === "Cachorros")
       return pet.type === "cachorro";
     if (activeFilter === "Gatos") return pet.type === "gato";
     return true;
+  }).filter((pet) => {
+    const q = search.trim().toLowerCase();
+    if (!q) return true;
+
+    const animalTerms =
+      pet.type === "cachorro"
+        ? "cachorro cao cão dog canino"
+        : pet.type === "gato"
+          ? "gato cat felino"
+          : "pet animal";
+
+    return (
+      pet.name.toLowerCase().includes(q) ||
+      pet.type.toLowerCase().includes(q) ||
+      animalTerms.includes(q) ||
+      pet.description.toLowerCase().includes(q) ||
+      pet.neighborhood.toLowerCase().includes(q) ||
+      pet.city.toLowerCase().includes(q)
+    );
   });
+
+  const renderFilterContent = (
+    filter: "Todos" | "Perdidos" | "Encontrados" | "Cachorros" | "Gatos",
+  ) => {
+    if (filter === "Todos") {
+      return (
+        <>
+          <PawPrint size={14} strokeWidth={2.2} />
+          <span>Todos</span>
+        </>
+      );
+    }
+    if (filter === "Perdidos") {
+      return (
+        <>
+          <Search size={14} strokeWidth={2.2} />
+          <span>Perdidos</span>
+        </>
+      );
+    }
+    if (filter === "Encontrados") {
+      return (
+        <>
+          <CheckCircle2 size={14} strokeWidth={2.2} />
+          <span>Achados</span>
+        </>
+      );
+    }
+    if (filter === "Cachorros") {
+      return (
+        <>
+          <Dog size={14} strokeWidth={2.2} />
+          <span>Cachorros</span>
+        </>
+      );
+    }
+
+    return (
+      <>
+        <Cat size={14} strokeWidth={2.2} />
+        <span>Gatos</span>
+      </>
+    );
+  };
 
   return (
     <div className="min-h-screen bg-background pb-[100px]">
@@ -739,27 +851,31 @@ function FeedScreen({
         {/* Header */}
         <div className="flex justify-between items-center mb-6">
           <div className="flex items-center gap-3">
-            <div className="w-[44px] h-[44px] bg-primary/10 rounded-full flex items-center justify-center text-primary">
-              <MapPin size={22} strokeWidth={2.5} />
-            </div>
-            <div>
-              <p className="text-[12px] text-muted-foreground font-semibold font-display uppercase tracking-wider">
-                Localização
-              </p>
-              <div className="flex items-center gap-1 text-[15px] font-extrabold text-foreground font-display h-5">
-                {user.city}{" "}
-                <ChevronDown
-                  size={16}
-                  className="text-primary mt-0.5"
-                />
+            <button
+              type="button"
+              onClick={onEditLocation}
+              className="flex items-center gap-3 text-left"
+            >
+              <div className="w-[44px] h-[44px] bg-primary/10 rounded-full flex items-center justify-center text-primary">
+                <MapPin size={22} strokeWidth={2.5} />
               </div>
-            </div>
+              <div>
+                <p className="text-[12px] text-muted-foreground font-semibold font-display uppercase tracking-wider">
+                  Localização
+                </p>
+                <div className="flex items-center gap-1 text-[15px] font-extrabold text-foreground font-display h-5">
+                  {formatUserLocation(user)}
+                </div>
+              </div>
+            </button>
           </div>
-          <img
-            src={user.avatar}
-            className="w-[44px] h-[44px] rounded-full object-cover border-2 border-primary/20"
-            alt="User"
-          />
+          <button type="button" onClick={onOpenProfile}>
+            <img
+              src={user.avatar}
+              className="w-[44px] h-[44px] rounded-full object-cover border-2 border-primary/20"
+              alt={user.name}
+            />
+          </button>
         </div>
 
         {/* Search */}
@@ -770,6 +886,8 @@ function FeedScreen({
             strokeWidth={2}
           />
           <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
             placeholder="Procurar por animal ou raça..."
             className="w-full h-[52px] bg-card border border-border/40 rounded-[12px] pl-[44px] pr-4 text-[14px] text-foreground outline-none font-body shadow-sm focus:border-primary transition-colors"
           />
@@ -822,21 +940,13 @@ function FeedScreen({
               <button
                 key={filter}
                 onClick={() => setActiveFilter(filter)}
-                className={`px-4 py-1.5 rounded-full font-bold text-[13px] font-display whitespace-nowrap transition-colors ${
+                className={`px-4 py-1.5 rounded-full font-bold text-[13px] font-display whitespace-nowrap transition-colors inline-flex items-center gap-1.5 ${
                   activeFilter === filter
                     ? "bg-primary text-primary-foreground shadow-sm"
                     : "bg-muted text-muted-foreground hover:bg-border/30"
                 }`}
               >
-                {filter === "Todos"
-                  ? "🐾 Todos"
-                  : filter === "Perdidos"
-                    ? "🔍 Perdidos"
-                    : filter === "Encontrados"
-                      ? "🚨 Achados"
-                      : filter === "Cachorros"
-                        ? "🐶 Cachorros"
-                        : "🐱 Gatos"}
+                {renderFilterContent(filter)}
               </button>
             ))}
           </div>
@@ -844,7 +954,11 @@ function FeedScreen({
 
         {/* Pets List */}
         <div className="space-y-4 mb-8">
-          {filteredPets.length > 0 ? (
+          {petsLoading ? (
+            <div className="flex justify-center py-16">
+              <div className="w-10 h-10 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+            </div>
+          ) : filteredPets.length > 0 ? (
             filteredPets.map((pet) => (
               <PetCard
                 key={pet.id}
@@ -858,18 +972,23 @@ function FeedScreen({
                 <Search size={40} strokeWidth={1.5} />
               </div>
               <h4 className="font-extrabold text-[18px] font-display text-foreground mb-2">
-                Nenhum pet encontrado
+                {activeFilter === "Todos"
+                  ? "Nenhum pet publicado ainda."
+                  : "Nenhum pet encontrado"}
               </h4>
               <p className="text-[14px] text-muted-foreground font-body leading-relaxed max-w-[250px]">
-                Não encontramos nenhum amiguinho com esses
-                filtros na sua região.
+                {activeFilter === "Todos"
+                  ? "Seja o primeiro a publicar um alerta de pet perdido!"
+                  : "Não encontramos nenhum amiguinho com esses filtros na sua região."}
               </p>
-              <button
-                onClick={() => setActiveFilter("Todos")}
-                className="mt-6 font-bold text-primary text-[14px] font-display underline"
-              >
-                Limpar filtros
-              </button>
+              {activeFilter !== "Todos" && (
+                <button
+                  onClick={() => setActiveFilter("Todos")}
+                  className="mt-6 font-bold text-primary text-[14px] font-display underline"
+                >
+                  Limpar filtros
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -885,6 +1004,10 @@ function DetailScreen({
   pet: Pet;
   onBack: () => void;
 }) {
+  const normalizedPhone = normalizeBrazilPhone(pet.ownerPhone);
+  const canContact = normalizedPhone.length > 0;
+  const whatsappLink = canContact ? `https://wa.me/${normalizedPhone}` : "";
+
   return (
     <div className="min-h-screen bg-background pb-[100px] relative">
       {/* Header Image */}
@@ -974,10 +1097,30 @@ function DetailScreen({
         </div>
 
         <div className="flex gap-4">
-          <button className="flex-1 bg-[#25D366] h-[54px] rounded-[14px] flex items-center justify-center gap-2 text-white font-bold font-display shadow-md hover:opacity-90 active:scale-[0.98] transition-all">
+          <button
+            type="button"
+            onClick={() => {
+              if (!canContact) {
+                window.alert("Telefone do tutor não disponível neste anúncio.");
+                return;
+              }
+              window.open(whatsappLink, "_blank", "noopener,noreferrer");
+            }}
+            className="flex-1 bg-[#25D366] h-[54px] rounded-[14px] flex items-center justify-center gap-2 text-white font-bold font-display shadow-md hover:opacity-90 active:scale-[0.98] transition-all"
+          >
             <IconWhatsApp /> WhatsApp
           </button>
-          <button className="w-[54px] h-[54px] bg-primary rounded-[14px] flex items-center justify-center text-white shadow-md hover:opacity-90 active:scale-[0.98] transition-all">
+          <button
+            type="button"
+            onClick={() => {
+              if (!canContact) {
+                window.alert("Telefone do tutor não disponível neste anúncio.");
+                return;
+              }
+              window.location.href = `tel:+${normalizedPhone}`;
+            }}
+            className="w-[54px] h-[54px] bg-primary rounded-[14px] flex items-center justify-center text-white shadow-md hover:opacity-90 active:scale-[0.98] transition-all"
+          >
             <Phone size={24} strokeWidth={2} />
           </button>
         </div>
@@ -989,14 +1132,98 @@ function DetailScreen({
 function ReportScreen({
   onSuccess,
   onBack,
+  user,
+  authUserId,
 }: {
   onSuccess: () => void;
   onBack: () => void;
+  user: UserData;
+  authUserId: string;
 }) {
-  const [petType, setPetType] = useState("cachorro");
-  const [porte, setPorte] = useState("Médio");
-  const [sexo, setSexo] = useState("Macho");
+  const [petType, setPetType] = useState<"cachorro" | "gato" | "outro">("cachorro");
+  const [porte, setPorte] = useState<"Pequeno" | "Médio" | "Grande">("Médio");
+  const [sexo, setSexo] = useState<"Macho" | "Fêmea">("Macho");
   const [reward, setReward] = useState("Não");
+  const [nome, setNome] = useState("");
+  const [descricao, setDescricao] = useState("");
+  const [cidade, setCidade] = useState(user.city || "");
+  const [bairro, setBairro] = useState(user.bairro || "");
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setCidade((current) => (current ? current : user.city || ""));
+    setBairro((current) => (current ? current : user.bairro || ""));
+  }, [user.city, user.bairro]);
+
+  // Revoke object URL on unmount or when preview changes to avoid memory leaks
+  useEffect(() => {
+    return () => {
+      if (photoPreview) URL.revokeObjectURL(photoPreview);
+    };
+  }, [photoPreview]);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (photoPreview) URL.revokeObjectURL(photoPreview);
+    setPhotoFile(file);
+    setPhotoPreview(URL.createObjectURL(file));
+  };
+
+  const handlePublicar = async () => {
+    if (!cidade.trim()) {
+      setSubmitError("Informe a cidade onde o pet foi visto por último.");
+      return;
+    }
+    if (!bairro.trim()) {
+      setSubmitError("Informe a localização onde o pet foi visto por último.");
+      return;
+    }
+    setLoading(true);
+    setSubmitError(null);
+
+    let fotoUrl: string | null = null;
+    if (photoFile) {
+      const { url, error: uploadErr } = await uploadPetImage(photoFile, authUserId);
+      if (uploadErr) {
+        setSubmitError(uploadErr.message);
+        setLoading(false);
+        return;
+      }
+      fotoUrl = url;
+    }
+
+    try {
+      const { error } = await createPet({
+        user_id: authUserId,
+        nome: nome.trim() || "Sem nome",
+        tipo: petType,
+        descricao: descricao.trim() || null,
+        last_seen: bairro.trim(),
+        cidade: cidade.trim(),
+        bairro: bairro.trim(),
+        owner_name: user.name?.trim() || null,
+        owner_phone: user.phone?.trim() || null,
+        sexo,
+        porte,
+        recompensa: reward === "Sim",
+        status: PET_STATUS.LOST,
+        foto_url: fotoUrl,
+      });
+      if (error) throw new Error(error.message);
+      onSuccess();
+    } catch (err) {
+      setSubmitError(
+        err instanceof Error ? err.message : "Não foi possível publicar. Tente novamente.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background pb-[120px] px-6 pt-8">
@@ -1020,21 +1247,41 @@ function ReportScreen({
         <button className="flex-1 bg-primary text-primary-foreground font-bold text-[14px] rounded-[12px] py-2.5 font-display shadow-sm">
           Pet Perdido
         </button>
-        <button className="flex-1 text-muted-foreground font-bold text-[14px] rounded-[12px] py-2.5 font-display">
-          Encontrado
-        </button>
       </div>
 
       <div className="mb-8">
         <label className="block text-[14px] font-bold font-display mb-3 text-foreground">
           Fotos do Pet
         </label>
+        {/* Hidden file input – opens camera/gallery on mobile */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          capture="environment"
+          className="hidden"
+          onChange={handleFileChange}
+        />
         <div className="grid grid-cols-4 gap-3">
-          <div className="col-span-2 aspect-square bg-primary/5 border-2 border-dashed border-primary/40 rounded-[16px] flex flex-col items-center justify-center text-primary gap-2 active:scale-95 transition-transform cursor-pointer">
-            <Camera size={28} strokeWidth={2} />
-            <span className="text-[12px] font-bold font-display">
-              Câmera
-            </span>
+          {/* Main photo button / preview */}
+          <div
+            onClick={() => fileInputRef.current?.click()}
+            className="col-span-2 aspect-square bg-primary/5 border-2 border-dashed border-primary/40 rounded-[16px] flex flex-col items-center justify-center text-primary gap-2 active:scale-95 transition-transform cursor-pointer overflow-hidden"
+          >
+            {photoPreview ? (
+              <img
+                src={photoPreview}
+                alt="Preview"
+                className="w-full h-full object-cover rounded-[14px]"
+              />
+            ) : (
+              <>
+                <Camera size={28} strokeWidth={2} />
+                <span className="text-[12px] font-bold font-display">
+                  Câmera
+                </span>
+              </>
+            )}
           </div>
           {[1, 2].map((i) => (
             <div
@@ -1048,6 +1295,11 @@ function ReportScreen({
             </div>
           ))}
         </div>
+        {photoFile && (
+          <p className="text-[11px] text-muted-foreground font-body mt-2 truncate">
+            {photoFile.name}
+          </p>
+        )}
       </div>
 
       <div className="space-y-5">
@@ -1055,7 +1307,12 @@ function ReportScreen({
           <label className="block text-[13px] font-bold font-display mb-1.5 text-foreground/80">
             Nome do Pet (opcional)
           </label>
-          <input className="w-full h-[52px] bg-card rounded-[12px] border border-border/60 px-4 outline-none focus:border-primary focus:ring-1 focus:ring-primary text-base font-body" />
+          <input
+            value={nome}
+            onChange={(e) => setNome(e.target.value)}
+            placeholder="Ex: Rex, Mel..."
+            className="w-full h-[52px] bg-card rounded-[12px] border border-border/60 px-4 outline-none focus:border-primary focus:ring-1 focus:ring-primary text-base font-body"
+          />
         </div>
 
         <div className="grid grid-cols-2 gap-4">
@@ -1150,6 +1407,18 @@ function ReportScreen({
 
         <div>
           <label className="block text-[13px] font-bold font-display mb-1.5 text-foreground/80">
+            Cidade
+          </label>
+          <input
+            value={cidade}
+            onChange={(e) => setCidade(e.target.value)}
+            placeholder="Cidade"
+            className="w-full h-[52px] bg-card rounded-[12px] border border-border/60 px-4 outline-none focus:border-primary focus:ring-1 focus:ring-primary text-base font-body"
+          />
+        </div>
+
+        <div>
+          <label className="block text-[13px] font-bold font-display mb-1.5 text-foreground/80">
             Localização (Última vez visto)
           </label>
           <div className="relative">
@@ -1158,6 +1427,8 @@ function ReportScreen({
               size={20}
             />
             <input
+              value={bairro}
+              onChange={(e) => setBairro(e.target.value)}
               placeholder="Rua, Bairro, Cidade"
               className="w-full h-[52px] bg-card rounded-[12px] border border-border/60 pl-11 pr-4 outline-none focus:border-primary focus:ring-1 focus:ring-primary text-base font-body"
             />
@@ -1169,17 +1440,30 @@ function ReportScreen({
             Detalhes adicionais
           </label>
           <textarea
+            value={descricao}
+            onChange={(e) => setDescricao(e.target.value)}
             placeholder="Coleira, manchas, comportamento..."
             className="w-full rounded-[12px] bg-card border border-border/60 p-4 outline-none focus:border-primary focus:ring-1 focus:ring-primary text-base h-[100px] resize-none font-body"
           />
         </div>
       </div>
 
+      {submitError && (
+        <p className="text-[13px] text-destructive font-semibold font-body text-center mt-6 px-2">
+          {submitError}
+        </p>
+      )}
+
       <button
-        onClick={onSuccess}
-        className="w-full bg-primary text-primary-foreground font-bold text-[16px] font-display h-[56px] rounded-[14px] mt-10 shadow-md active:scale-[0.98] transition-transform"
+        onClick={handlePublicar}
+        disabled={loading}
+        className="w-full bg-primary text-primary-foreground font-bold text-[16px] font-display h-[56px] rounded-[14px] mt-4 shadow-md active:scale-[0.98] transition-transform flex items-center justify-center disabled:opacity-60"
       >
-        Publicar Alerta
+        {loading ? (
+          <span className="w-6 h-6 rounded-full border-2 border-white border-t-transparent animate-spin" />
+        ) : (
+          "Publicar Alerta"
+        )}
       </button>
     </div>
   );
@@ -1289,17 +1573,70 @@ function OnboardingScreen({
 function ProfileScreen({
   user,
   onBack,
+  onOpenMyPets,
+  onSaveProfile,
+  onLogout,
 }: {
   user: UserData;
   onBack: () => void;
+  onOpenMyPets: () => void;
+  onSaveProfile: (fields: {
+    telefone: string;
+    cidade: string;
+    bairro: string;
+  }) => Promise<void>;
+  onLogout: () => void;
 }) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [telefone, setTelefone] = useState(user.phone);
+  const [cidade, setCidade] = useState(user.city);
+  const [bairro, setBairro] = useState(user.bairro);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setTelefone(user.phone);
+    setCidade(user.city);
+    setBairro(user.bairro);
+  }, [user.phone, user.city, user.bairro]);
+
+  const handleSave = async () => {
+    setSaving(true);
+    setSaveError(null);
+    try {
+      await onSaveProfile({ telefone, cidade, bairro });
+      setIsEditing(false);
+    } catch (err) {
+      setSaveError(
+        err instanceof Error
+          ? err.message
+          : "Não foi possível salvar suas informações.",
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background pb-[100px]">
       <div className="px-6 pt-10 flex justify-between items-center mb-8">
-        <h1 className="font-extrabold text-[28px] font-display text-foreground">
-          Perfil
-        </h1>
-        <button className="w-10 h-10 bg-card border border-border/40 rounded-full flex items-center justify-center text-destructive">
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={onBack}
+            className="w-10 h-10 rounded-full bg-card border border-border/40 flex items-center justify-center text-foreground"
+          >
+            <ChevronLeft size={20} strokeWidth={2.2} />
+          </button>
+          <h1 className="font-extrabold text-[28px] font-display text-foreground">
+            Perfil
+          </h1>
+        </div>
+        <button
+          type="button"
+          onClick={onLogout}
+          className="w-10 h-10 bg-card border border-border/40 rounded-full flex items-center justify-center text-destructive"
+        >
           <LogOut size={20} strokeWidth={2.5} />
         </button>
       </div>
@@ -1311,15 +1648,19 @@ function ProfileScreen({
             className="w-[120px] h-[120px] rounded-full object-cover border-4 border-card shadow-sm"
             alt={user.name}
           />
-          <button className="absolute bottom-0 right-0 w-10 h-10 bg-primary rounded-full flex items-center justify-center text-white border-2 border-background shadow-md">
+          <button
+            type="button"
+            onClick={() => setIsEditing((current) => !current)}
+            className="absolute bottom-0 right-0 w-10 h-10 bg-primary rounded-full flex items-center justify-center text-white border-2 border-background shadow-md"
+          >
             <Edit size={18} strokeWidth={2} />
           </button>
         </div>
         <h2 className="font-extrabold text-[24px] font-display text-foreground">
           {user.name}
         </h2>
-        <p className="font-bold text-[14px] text-primary font-body">
-          {user.handle}
+        <p className="font-bold text-[14px] text-primary font-body break-all px-4 text-center">
+          {user.email}
         </p>
       </div>
 
@@ -1327,6 +1668,72 @@ function ProfileScreen({
         <h3 className="font-extrabold text-[16px] font-display text-muted-foreground uppercase tracking-wider mb-2">
           Dados Pessoais
         </h3>
+
+        {isEditing && (
+          <div className="bg-card border border-border/40 rounded-[16px] p-4 space-y-3">
+            <div>
+              <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider font-display mb-1.5">
+                Telefone
+              </p>
+              <input
+                value={telefone}
+                onChange={(e) => setTelefone(e.target.value)}
+                className="w-full h-[44px] bg-background rounded-[10px] border border-border/60 px-3 outline-none focus:border-primary focus:ring-1 focus:ring-primary text-[14px] font-body"
+                placeholder="(85) 9 9999-9999"
+              />
+            </div>
+            <div>
+              <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider font-display mb-1.5">
+                Cidade
+              </p>
+              <input
+                value={cidade}
+                onChange={(e) => setCidade(e.target.value)}
+                className="w-full h-[44px] bg-background rounded-[10px] border border-border/60 px-3 outline-none focus:border-primary focus:ring-1 focus:ring-primary text-[14px] font-body"
+                placeholder="Cidade"
+              />
+            </div>
+            <div>
+              <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider font-display mb-1.5">
+                Bairro
+              </p>
+              <input
+                value={bairro}
+                onChange={(e) => setBairro(e.target.value)}
+                className="w-full h-[44px] bg-background rounded-[10px] border border-border/60 px-3 outline-none focus:border-primary focus:ring-1 focus:ring-primary text-[14px] font-body"
+                placeholder="Bairro"
+              />
+            </div>
+            {saveError && (
+              <p className="text-[13px] text-destructive font-semibold font-body text-center">
+                {saveError}
+              </p>
+            )}
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsEditing(false);
+                  setSaveError(null);
+                  setTelefone(user.phone);
+                  setCidade(user.city);
+                  setBairro(user.bairro);
+                }}
+                className="flex-1 h-[42px] rounded-[10px] border border-border/70 font-bold text-[14px] font-display"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleSave}
+                disabled={saving}
+                className="flex-1 h-[42px] rounded-[10px] bg-primary text-primary-foreground font-bold text-[14px] font-display disabled:opacity-60"
+              >
+                {saving ? "Salvando..." : "Salvar"}
+              </button>
+            </div>
+          </div>
+        )}
 
         <div className="bg-card border border-border/40 rounded-[16px] overflow-hidden">
           <div className="flex items-center gap-4 p-4 border-b border-border/40">
@@ -1345,6 +1752,20 @@ function ProfileScreen({
 
           <div className="flex items-center gap-4 p-4 border-b border-border/40">
             <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0">
+              <Mail size={20} />
+            </div>
+            <div>
+              <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider font-display mb-0.5">
+                Email
+              </p>
+              <p className="font-bold text-[15px] font-body text-foreground break-all">
+                {user.email}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-4 p-4 border-b border-border/40">
+            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0">
               <MapPin size={20} />
             </div>
             <div>
@@ -1352,7 +1773,7 @@ function ProfileScreen({
                 Localização
               </p>
               <p className="font-bold text-[15px] font-body text-foreground">
-                {user.city}
+                {formatUserLocation(user)}
               </p>
             </div>
           </div>
@@ -1366,11 +1787,310 @@ function ProfileScreen({
                 Telefone
               </p>
               <p className="font-bold text-[15px] font-body text-foreground">
-                {user.phone}
+                {formatUserPhone(user)}
               </p>
             </div>
           </div>
         </div>
+
+        <button
+          type="button"
+          onClick={onOpenMyPets}
+          className="w-full h-[52px] rounded-[14px] bg-primary text-primary-foreground font-bold font-display shadow-sm"
+        >
+          Meus Pets
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function EditPetModal({
+  pet,
+  open,
+  onClose,
+  onSave,
+}: {
+  pet: Pet | null;
+  open: boolean;
+  onClose: () => void;
+  onSave: (payload: {
+    descricao: string;
+    cidade: string;
+    bairro: string;
+    last_seen: string;
+    owner_phone: string;
+  }) => Promise<void>;
+}) {
+  const [descricao, setDescricao] = useState("");
+  const [cidade, setCidade] = useState("");
+  const [bairro, setBairro] = useState("");
+  const [lastSeen, setLastSeen] = useState("");
+  const [ownerPhone, setOwnerPhone] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!pet) return;
+    setDescricao(pet.description || "");
+    setCidade(pet.city || "");
+    setBairro(pet.neighborhood || "");
+    setLastSeen(pet.lastSeen || "");
+    setOwnerPhone(pet.ownerPhone || "");
+  }, [pet]);
+
+  if (!open || !pet) return null;
+
+  const handleSubmit = async () => {
+    setSaving(true);
+    setError(null);
+    try {
+      await onSave({
+        descricao: descricao.trim(),
+        cidade: cidade.trim(),
+        bairro: bairro.trim(),
+        last_seen: lastSeen.trim(),
+        owner_phone: ownerPhone.trim(),
+      });
+      onClose();
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Não foi possível salvar o anúncio.",
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-[120] bg-black/60 px-4 py-6 flex items-end sm:items-center justify-center"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Editar anúncio"
+    >
+      <div
+        className="w-full max-w-md bg-background rounded-[18px] p-5 shadow-2xl max-h-[90vh] overflow-y-auto"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="flex items-start justify-between mb-4">
+          <div>
+            <h3 className="font-extrabold text-[20px] font-display text-foreground">
+              Editar anúncio
+            </h3>
+            <p className="text-[13px] text-muted-foreground font-body">
+              Ajuste os dados principais do seu pet.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-9 h-9 rounded-full bg-muted flex items-center justify-center"
+            aria-label="Fechar edição"
+          >
+            <ChevronLeft size={18} className="rotate-180" />
+          </button>
+        </div>
+
+        <div className="space-y-3">
+          <div>
+            <label className="block text-[13px] font-bold font-display mb-1.5 text-foreground/80">
+              Descrição
+            </label>
+            <textarea
+              value={descricao}
+              onChange={(e) => setDescricao(e.target.value)}
+              className="w-full rounded-[12px] bg-card border border-border/60 p-3 outline-none focus:border-primary focus:ring-1 focus:ring-primary text-base h-[96px] resize-none font-body"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-[13px] font-bold font-display mb-1.5 text-foreground/80">
+                Cidade
+              </label>
+              <input
+                value={cidade}
+                onChange={(e) => setCidade(e.target.value)}
+                className="w-full h-[48px] bg-card rounded-[12px] border border-border/60 px-4 outline-none focus:border-primary focus:ring-1 focus:ring-primary text-base font-body"
+              />
+            </div>
+            <div>
+              <label className="block text-[13px] font-bold font-display mb-1.5 text-foreground/80">
+                Bairro
+              </label>
+              <input
+                value={bairro}
+                onChange={(e) => setBairro(e.target.value)}
+                className="w-full h-[48px] bg-card rounded-[12px] border border-border/60 px-4 outline-none focus:border-primary focus:ring-1 focus:ring-primary text-base font-body"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-[13px] font-bold font-display mb-1.5 text-foreground/80">
+              Última vez visto
+            </label>
+            <input
+              value={lastSeen}
+              onChange={(e) => setLastSeen(e.target.value)}
+              className="w-full h-[48px] bg-card rounded-[12px] border border-border/60 px-4 outline-none focus:border-primary focus:ring-1 focus:ring-primary text-base font-body"
+            />
+          </div>
+          <div>
+            <label className="block text-[13px] font-bold font-display mb-1.5 text-foreground/80">
+              Telefone
+            </label>
+            <input
+              value={ownerPhone}
+              onChange={(e) => setOwnerPhone(e.target.value)}
+              className="w-full h-[48px] bg-card rounded-[12px] border border-border/60 px-4 outline-none focus:border-primary focus:ring-1 focus:ring-primary text-base font-body"
+            />
+          </div>
+        </div>
+
+        {error && (
+          <p className="text-[13px] text-destructive font-semibold font-body text-center mt-4">
+            {error}
+          </p>
+        )}
+
+        <button
+          type="button"
+          onClick={handleSubmit}
+          disabled={saving}
+          className="w-full h-[50px] rounded-[14px] bg-primary text-primary-foreground font-bold font-display mt-5 disabled:opacity-60"
+        >
+          {saving ? "Salvando..." : "Salvar alterações"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function MyPetsScreen({
+  pets,
+  loading,
+  error,
+  onBack,
+  onEdit,
+  onDelete,
+  onMarkFound,
+  busyPetId,
+}: {
+  pets: Pet[];
+  loading: boolean;
+  error: string | null;
+  onBack: () => void;
+  onEdit: (pet: Pet) => void;
+  onDelete: (pet: Pet) => void;
+  onMarkFound: (pet: Pet) => void;
+  busyPetId: string | null;
+}) {
+  return (
+    <div className="min-h-screen bg-background pb-[100px]">
+      <div className="px-6 pt-10 flex items-center gap-4 mb-8">
+        <button
+          type="button"
+          onClick={onBack}
+          className="w-10 h-10 rounded-full bg-card border border-border/40 flex items-center justify-center text-foreground"
+        >
+          <ChevronLeft size={20} strokeWidth={2.2} />
+        </button>
+        <div>
+          <h1 className="font-extrabold text-[28px] font-display text-foreground">
+            Meus Pets
+          </h1>
+          <p className="text-[13px] text-muted-foreground font-body">
+            Gerencie seus anúncios
+          </p>
+        </div>
+      </div>
+
+      <div className="px-6 space-y-4">
+        {loading ? (
+          <div className="flex justify-center py-16">
+            <div className="w-10 h-10 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+          </div>
+        ) : error ? (
+          <div className="bg-card border border-border/40 rounded-[16px] p-6 text-center">
+            <p className="font-semibold text-destructive font-body">{error}</p>
+          </div>
+        ) : pets.length === 0 ? (
+          <div className="bg-card border border-dashed border-border rounded-[16px] p-8 text-center">
+            <div className="w-[80px] h-[80px] bg-primary/10 rounded-full flex items-center justify-center text-primary mx-auto mb-4">
+              <PawPrint size={36} strokeWidth={2} />
+            </div>
+            <h3 className="font-extrabold text-[18px] font-display text-foreground mb-2">
+              Você ainda não publicou nenhum pet
+            </h3>
+            <p className="text-[14px] text-muted-foreground font-body leading-relaxed">
+              Publique um anúncio para acompanhar, editar ou marcar como encontrado.
+            </p>
+          </div>
+        ) : (
+          pets.map((pet) => (
+            <div
+              key={pet.id}
+              className={`relative bg-card rounded-[12px] shadow-sm overflow-hidden flex h-[160px] border border-border/30 ${pet.status === PET_STATUS.FOUND ? "opacity-75" : ""}`}
+            >
+              <button
+                type="button"
+                onClick={() => onEdit(pet)}
+                disabled={busyPetId === pet.id}
+                aria-label="Editar anúncio"
+                className="absolute top-3 right-3 z-10 w-8 h-8 rounded-full bg-muted text-foreground flex items-center justify-center disabled:opacity-60"
+              >
+                <Edit size={14} />
+              </button>
+
+              <div className="w-[120px] shrink-0 bg-muted">
+                <img
+                  src={pet.photo}
+                  alt={pet.name}
+                  className={`w-full h-full object-cover ${pet.status === PET_STATUS.FOUND ? "opacity-70 grayscale-[30%]" : ""}`}
+                />
+              </div>
+
+              <div className="flex-1 p-3 flex flex-col justify-between ml-1 pr-9">
+                <div>
+                  <h3 className="font-bold text-lg mb-1 font-display uppercase tracking-tight text-foreground truncate">
+                    {pet.name}
+                  </h3>
+                  <p className="text-[12px] leading-snug text-muted-foreground font-body line-clamp-2">
+                    {pet.city} · {pet.neighborhood}
+                  </p>
+                  <p className="text-[11px] text-muted-foreground font-body mt-1">
+                    Publicado em {new Date(pet.postedAt).toLocaleDateString("pt-BR")}
+                  </p>
+                  {pet.lastSeen && (
+                    <p className="text-[11px] text-muted-foreground font-body mt-1 line-clamp-1">
+                      Última vez visto: {pet.lastSeen}
+                    </p>
+                  )}
+                </div>
+
+                <div className="flex gap-2 justify-end mt-2">
+                  <button
+                    type="button"
+                    onClick={() => onMarkFound(pet)}
+                    disabled={pet.status === PET_STATUS.FOUND || busyPetId === pet.id}
+                    className="bg-green-600 text-white font-bold text-[12px] font-display py-1.5 px-3 rounded-full shadow-sm hover:opacity-90 disabled:opacity-60"
+                  >
+                    Encontrado
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onDelete(pet)}
+                    disabled={busyPetId === pet.id}
+                    className="bg-destructive text-destructive-foreground font-bold text-[12px] font-display py-1.5 px-3 rounded-full shadow-sm hover:opacity-90 disabled:opacity-60"
+                  >
+                    Excluir
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))
+        )}
       </div>
     </div>
   );
@@ -1380,9 +2100,85 @@ function ProfileScreen({
 
 export default function App() {
   const [screen, setScreen] = useState<Screen>("onboarding");
-  const [selectedPet, setSelectedPet] = useState<Pet | null>(
-    null,
-  );
+  const [selectedPet, setSelectedPet] = useState<Pet | null>(null);
+  const [editingPet, setEditingPet] = useState<Pet | null>(null);
+  const [petActionLoadingId, setPetActionLoadingId] = useState<string | null>(null);
+  const {
+    user,
+    authUser,
+    authReady,
+    profileLoading,
+    profileComplete,
+    syncUserFromAuth,
+    completeProfile,
+    clearUser,
+  } = useProfile();
+  const { pets: dbPets, loading: petsLoading, refetch: refetchPets } = usePets();
+  const { pets: myPets, loading: myPetsLoading, error: myPetsError, refetch: refetchMyPets } = useMyPets(user?.id);
+  const displayPets = dbPets.map(mapDbPetToDisplay);
+  const displayMyPets = myPets.map(mapDbPetToDisplay);
+
+  useEffect(() => {
+    if (!authReady) return;
+
+    if (user) {
+      setScreen((current) =>
+        current === "onboarding" || current === "login" ? "feed" : current,
+      );
+      return;
+    }
+
+    setScreen((current) =>
+      current === "onboarding" ? "onboarding" : "login",
+    );
+  }, [authReady, user]);
+
+  useEffect(() => {
+    if (!authReady || profileLoading || user) return;
+
+    const protectedScreens: Screen[] = [
+      "feed",
+      "profile",
+      "report",
+      "detail",
+      "my-pets",
+    ];
+
+    if (protectedScreens.includes(screen)) {
+      setScreen("login");
+    }
+  }, [authReady, profileLoading, screen, user]);
+
+  useEffect(() => {
+    if (!authReady || !user || profileComplete) return;
+
+    const profileRequiredScreens: Screen[] = [
+      "profile",
+      "report",
+      "detail",
+      "my-pets",
+    ];
+
+    if (profileRequiredScreens.includes(screen)) {
+      setScreen("feed");
+    }
+  }, [authReady, user, profileComplete, screen]);
+
+  useEffect(() => {
+    if (screen === "detail" && !selectedPet) {
+      setScreen("feed");
+    }
+  }, [screen, selectedPet]);
+
+  useEffect(() => {
+    if (!authUser || !user) return;
+    if (!user.name.trim() || !user.phone.trim()) return;
+    void syncMyPetContactSnapshot({
+      userId: authUser.id,
+      nome: user.name,
+      telefone: user.phone,
+    });
+  }, [authUser, user]);
 
   const handleNavigate = (newScreen: Screen) => {
     setScreen(newScreen);
@@ -1394,6 +2190,91 @@ export default function App() {
     handleNavigate("detail");
   };
 
+  const handleEditPet = (pet: Pet) => {
+    setEditingPet(pet);
+    handleNavigate("my-pets");
+  };
+
+  const handleSavePet = async (payload: {
+    descricao: string;
+    cidade: string;
+    bairro: string;
+    last_seen: string;
+    owner_phone: string;
+  }) => {
+    if (!editingPet) return;
+    setPetActionLoadingId(editingPet.id);
+    try {
+      const { error } = await updatePet(editingPet.id, {
+        descricao: payload.descricao,
+        cidade: payload.cidade,
+        bairro: payload.bairro,
+        last_seen: payload.last_seen,
+        owner_phone: payload.owner_phone,
+        status: editingPet.status,
+      });
+      if (error) throw new Error(error.message);
+      await Promise.all([refetchMyPets(), refetchPets()]);
+      setEditingPet(null);
+    } catch (err) {
+      throw err instanceof Error ? err : new Error("Não foi possível salvar o anúncio.");
+    } finally {
+      setPetActionLoadingId(null);
+    }
+  };
+
+  const handleMarkFound = async (pet: Pet) => {
+    setPetActionLoadingId(pet.id);
+    try {
+      const { error } = await markPetAsFound(pet.id);
+      if (error) throw new Error(error.message);
+      await Promise.all([refetchMyPets(), refetchPets()]);
+    } catch (err) {
+      window.alert(
+        err instanceof Error ? err.message : "Não foi possível marcar como encontrado.",
+      );
+    } finally {
+      setPetActionLoadingId(null);
+    }
+  };
+
+  const handleDeletePet = async (pet: Pet) => {
+    const confirmed = window.confirm(`Excluir o anúncio de ${pet.name}?`);
+    if (!confirmed) return;
+    setPetActionLoadingId(pet.id);
+    try {
+      const { error } = await deletePet(pet);
+      if (error) throw new Error(error.message);
+      await Promise.all([refetchMyPets(), refetchPets()]);
+      if (editingPet?.id === pet.id) setEditingPet(null);
+    } catch (err) {
+      window.alert(
+        err instanceof Error ? err.message : "Não foi possível excluir o anúncio.",
+      );
+    } finally {
+      setPetActionLoadingId(null);
+    }
+  };
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    clearUser();
+    handleNavigate("login");
+  };
+
+  const showCompleteProfileModal =
+    Boolean(user && !profileLoading && !profileComplete);
+
+  if (!authReady) {
+    return (
+      <div className="w-full min-h-screen bg-background flex justify-center">
+        <div className="w-full max-w-md min-h-screen bg-background flex items-center justify-center">
+          <div className="w-10 h-10 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="w-full min-h-screen bg-background flex justify-center">
       <div className="w-full max-w-md relative bg-background shadow-2xl min-h-screen overflow-x-hidden">
@@ -1403,37 +2284,83 @@ export default function App() {
           />
         )}
         {screen === "login" && (
-          <LoginScreen onLogin={() => handleNavigate("feed")} />
-        )}
-        {screen === "feed" && (
-          <FeedScreen
-            pets={MOCK_PETS}
-            onDetail={handleDetail}
-            user={MOCK_USER}
+          <LoginScreen
+            onLogin={async () => {
+              const {
+                data: { session },
+              } = await supabase.auth.getSession();
+              if (session?.user) {
+                await syncUserFromAuth(session.user);
+                handleNavigate("feed");
+              }
+            }}
           />
         )}
-        {screen === "detail" && selectedPet && (
+        {screen === "feed" && user && (
+          <FeedScreen
+            pets={displayPets}
+            petsLoading={petsLoading}
+            onDetail={handleDetail}
+            onOpenProfile={() => handleNavigate("profile")}
+            onEditLocation={() => handleNavigate("profile")}
+            user={user}
+          />
+        )}
+        {screen === "detail" && selectedPet && profileComplete && (
           <DetailScreen
             pet={selectedPet}
             onBack={() => handleNavigate("feed")}
           />
         )}
-        {screen === "profile" && (
+        {screen === "profile" && user && profileComplete && (
           <ProfileScreen
-            user={MOCK_USER}
+            user={user}
             onBack={() => handleNavigate("feed")}
+            onOpenMyPets={() => handleNavigate("my-pets")}
+            onSaveProfile={completeProfile}
+            onLogout={handleLogout}
           />
         )}
-        {screen === "report" && (
+        {screen === "my-pets" && user && profileComplete && (
+          <MyPetsScreen
+            pets={displayMyPets}
+            loading={myPetsLoading}
+            error={myPetsError}
+            onBack={() => handleNavigate("profile")}
+            onEdit={handleEditPet}
+            onDelete={handleDeletePet}
+            onMarkFound={handleMarkFound}
+            busyPetId={petActionLoadingId}
+          />
+        )}
+        {screen === "report" && user && profileComplete && authUser && (
           <ReportScreen
-            onSuccess={() => handleNavigate("feed")}
+            onSuccess={async () => {
+              await refetchPets();
+              handleNavigate("feed");
+            }}
             onBack={() => handleNavigate("feed")}
+            user={user}
+            authUserId={authUser.id}
           />
         )}
+
+        <CompleteProfileModal
+          open={showCompleteProfileModal}
+          onSubmit={completeProfile}
+        />
 
         <BottomNav
           screen={screen}
           onNavigate={handleNavigate}
+          profileComplete={profileComplete}
+        />
+
+        <EditPetModal
+          pet={editingPet}
+          open={Boolean(editingPet)}
+          onClose={() => setEditingPet(null)}
+          onSave={handleSavePet}
         />
       </div>
     </div>
