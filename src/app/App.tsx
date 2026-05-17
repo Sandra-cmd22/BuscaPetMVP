@@ -361,23 +361,39 @@ function PetCard({
   pet: Pet;
   onDetail: (pet: Pet) => void;
 }) {
+  const trimLocationPart = (value: string, maxLength: number) =>
+    value.length > maxLength ? `${value.slice(0, maxLength).trimEnd()}…` : value;
+
+  const cityRaw = pet.city.trim();
+  const neighborhoodRaw = pet.neighborhood.trim();
+  const city = trimLocationPart(cityRaw, 14);
+  const neighborhood = trimLocationPart(neighborhoodRaw, 14);
+  const hasNeighborhood =
+    neighborhoodRaw.length > 0 &&
+    neighborhoodRaw.toLowerCase() !== cityRaw.toLowerCase();
+  const locationTitle = hasNeighborhood
+    ? `${cityRaw} · ${neighborhoodRaw}`
+    : cityRaw;
+
   return (
     <div
       onClick={() => onDetail(pet)}
-      className="bg-card rounded-[12px] shadow-sm relative overflow-hidden flex h-[160px] border border-border/30 cursor-pointer active:scale-[0.98] transition-transform"
+      className="bg-[#f5f4f4] rounded-[10px] shadow-[0px_4px_4px_rgba(0,0,0,0.15)] relative overflow-hidden flex h-[160px] sm:h-[187px] cursor-pointer active:scale-[0.98] transition-transform"
     >
+      {/* Ribbons */}
       {pet.status === PET_STATUS.LOST && pet.reward && (
-        <div className="absolute -right-9 top-4 bg-destructive text-destructive-foreground text-[10px] font-bold py-1 px-10 rotate-45 z-10 shadow-sm uppercase tracking-wider">
+        <div className="absolute -right-8 top-5 bg-[#E53C51] text-white text-[10px] sm:text-[11px] font-bold py-1 w-[120px] rotate-45 z-10 text-center uppercase tracking-wider shadow-sm">
           Recompensa
         </div>
       )}
       {pet.status === PET_STATUS.FOUND && (
-        <div className="absolute -right-9 top-4 bg-muted-foreground text-white text-[10px] font-bold py-1 px-10 rotate-45 z-10 shadow-sm uppercase tracking-wider">
+        <div className="absolute -right-8 top-5 bg-[#757575] text-white text-[10px] sm:text-[11px] font-bold py-1 w-[120px] rotate-45 z-10 text-center uppercase tracking-wider shadow-sm">
           Encontrado
         </div>
       )}
 
-      <div className="w-[120px] shrink-0 bg-muted">
+      {/* Image */}
+      <div className="w-[120px] sm:w-[131px] shrink-0 bg-[#a7beb7]">
         <img
           src={pet.photo}
           alt={pet.name}
@@ -386,38 +402,37 @@ function PetCard({
             img.onerror = null;
             img.src = pet.type === "gato" ? CAT_PLACEHOLDER : DOG_PLACEHOLDER;
           }}
-          className={`w-full h-full object-cover ${pet.status === PET_STATUS.FOUND ? "opacity-70 grayscale-[30%]" : ""}`}
+          className={`w-full h-full object-cover ${pet.status === PET_STATUS.FOUND ? "opacity-60" : ""}`}
         />
       </div>
 
-      <div className="flex-1 p-3 flex flex-col justify-between ml-1">
-        <div>
-          <h4 className="font-bold text-lg mb-1 font-display uppercase tracking-tight text-foreground">
-            {pet.name}
-          </h4>
-          <div className="bg-primary/10 text-primary font-semibold text-[11px] py-[2px] px-2.5 rounded-full inline-block mb-1.5 font-body">
+      {/* Content */}
+      <div className="flex-1 p-3 sm:p-4 flex flex-col relative z-0 min-w-0">
+        <h4 className="font-bold text-[16px] text-black mb-1 font-display uppercase truncate">
+          {pet.name}
+        </h4>
+
+        <div className="self-start bg-[#00866f] rounded-[4px] px-1.5 py-[2px] mb-2 flex items-center max-w-full">
+          <span className="text-[10px] leading-none text-white font-body truncate max-w-full">
             {pet.ownerName}
-          </div>
-          <p className="text-[12px] leading-snug line-clamp-2 text-muted-foreground font-body">
-            {pet.description}
-          </p>
+          </span>
         </div>
 
-        <div className="flex justify-between items-end mt-2">
-          <p className="text-[13px] font-bold text-primary font-body flex items-center gap-1">
-            <MapPin size={12} /> {pet.distance}
+        <p className="text-[10px] sm:text-[11px] leading-[1.4] text-black font-body mb-2 line-clamp-3">
+          {pet.description}
+        </p>
+
+        <div className="mt-auto flex items-center gap-1 min-w-0">
+          <MapPin size={13} className="text-[#FF9D0B] shrink-0" />
+          <p className="text-[13px] font-bold font-display text-black truncate whitespace-nowrap min-w-0" title={locationTitle}>
+            <span className="text-[#FF9D0B]">{city}</span>
+            {hasNeighborhood && (
+              <>
+                <span className="mx-1 text-[#00866f]">•</span>
+                <span>{neighborhood}</span>
+              </>
+            )}
           </p>
-          {pet.status === PET_STATUS.LOST && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onDetail(pet);
-              }}
-              className="bg-secondary text-secondary-foreground font-bold text-[12px] font-display py-1.5 px-4 rounded-full shadow-sm hover:opacity-90"
-            >
-              Você viu?
-            </button>
-          )}
         </div>
       </div>
     </div>
@@ -513,7 +528,7 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
 
   if (view === "login") {
     return (
-      <div className="min-h-screen bg-white relative w-full overflow-y-auto flex flex-col px-[18px] py-12">
+      <div className="min-h-screen bg-white relative w-full overflow-y-auto flex flex-col px-[18px] py-12 safe-area-container">
         <button
           onClick={() => setView("choice")}
           className="absolute top-10 left-[18px]"
@@ -633,7 +648,7 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
 
   if (view === "register") {
     return (
-      <div className="min-h-screen bg-white relative w-full overflow-y-auto flex flex-col px-[18px] py-12">
+      <div className="min-h-screen bg-white relative w-full overflow-y-auto flex flex-col px-[18px] py-12 safe-area-container">
         <button
           onClick={() => setView("choice")}
           className="absolute top-10 left-[18px]"
@@ -846,50 +861,50 @@ function FeedScreen({
   };
 
   return (
-    <div className="min-h-screen bg-background pb-[100px]">
-      <div className="px-5 pt-8">
-        {/* Header */}
-        <div className="flex justify-between items-center mb-6">
-          <div className="flex items-center gap-3">
+    <div className="min-h-screen bg-background pb-[100px] safe-area-top">
+      <div className="px-3 sm:px-5 pt-6 sm:pt-8 safe-area-left safe-area-right">
+        {/* Header - Responsive spacing */}
+        <div className="flex justify-between items-center gap-2 sm:gap-3 mb-4 sm:mb-6">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
             <button
               type="button"
               onClick={onEditLocation}
-              className="flex items-center gap-3 text-left"
+              className="flex items-center gap-2 sm:gap-3 text-left shrink-0"
             >
-              <div className="w-[44px] h-[44px] bg-primary/10 rounded-full flex items-center justify-center text-primary">
-                <MapPin size={22} strokeWidth={2.5} />
+              <div className="w-10 sm:w-[44px] h-10 sm:h-[44px] bg-primary/10 rounded-full flex items-center justify-center text-primary flex-shrink-0">
+                <MapPin size={18} className="sm:w-6 sm:h-6" strokeWidth={2.5} />
               </div>
-              <div>
-                <p className="text-[12px] text-muted-foreground font-semibold font-display uppercase tracking-wider">
+              <div className="min-w-0">
+                <p className="text-[10px] sm:text-[12px] text-muted-foreground font-semibold font-display uppercase tracking-wider">
                   Localização
                 </p>
-                <div className="flex items-center gap-1 text-[15px] font-extrabold text-foreground font-display h-5">
+                <div className="flex items-center gap-1 text-[13px] sm:text-[15px] font-extrabold text-foreground font-display h-5 truncate">
                   {formatUserLocation(user)}
                 </div>
               </div>
             </button>
           </div>
-          <button type="button" onClick={onOpenProfile}>
+          <button type="button" onClick={onOpenProfile} className="shrink-0">
             <img
               src={user.avatar}
-              className="w-[44px] h-[44px] rounded-full object-cover border-2 border-primary/20"
+              className="w-10 sm:w-[44px] h-10 sm:h-[44px] rounded-full object-cover border-2 border-primary/20"
               alt={user.name}
             />
           </button>
         </div>
 
-        {/* Search */}
-        <div className="relative mb-6">
+        {/* Search - Responsive height */}
+        <div className="relative mb-4 sm:mb-6">
           <Search
-            className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground"
-            size={20}
+            className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 text-muted-foreground"
+            size={18}
             strokeWidth={2}
           />
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Procurar por animal ou raça..."
-            className="w-full h-[52px] bg-card border border-border/40 rounded-[12px] pl-[44px] pr-4 text-[14px] text-foreground outline-none font-body shadow-sm focus:border-primary transition-colors"
+            className="w-full h-12 bg-white rounded-lg border border-stone-300 pl-10 pr-3 text-[13px] sm:text-[14px] text-foreground outline-none font-body shadow-sm focus:border-primary transition-colors"
           />
         </div>
 
@@ -914,20 +929,20 @@ function FeedScreen({
           </div>
         </div>
 
-        {/* List Header */}
-        <div className="flex flex-col mb-4">
-          <div className="flex justify-between items-end px-1 mb-4">
+        {/* List Header - Responsive typography */}
+        <div className="flex flex-col mb-3 sm:mb-4">
+          <div className="flex justify-between items-end px-0 sm:px-1 mb-3 sm:mb-4">
             <div>
-              <h3 className="text-foreground text-[18px] font-extrabold font-display">
+              <h3 className="text-foreground text-base sm:text-lg md:text-[18px] font-extrabold font-display">
                 Últimos registrados
               </h3>
-              <p className="text-[13px] text-muted-foreground mt-0.5 font-body">
+              <p className="text-[11px] sm:text-[13px] text-muted-foreground mt-0.5 font-body">
                 Perto de você
               </p>
             </div>
           </div>
 
-          <div className="flex gap-2 overflow-x-auto pb-2 px-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+          <div className="flex gap-1.5 sm:gap-2 overflow-x-auto pb-2 px-0 sm:px-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
             {(
               [
                 "Todos",
@@ -940,7 +955,7 @@ function FeedScreen({
               <button
                 key={filter}
                 onClick={() => setActiveFilter(filter)}
-                className={`px-4 py-1.5 rounded-full font-bold text-[13px] font-display whitespace-nowrap transition-colors inline-flex items-center gap-1.5 ${
+                className={`px-2.5 sm:px-4 py-1 sm:py-1.5 rounded-full font-bold text-[11px] sm:text-[13px] font-display whitespace-nowrap transition-colors inline-flex items-center gap-1 sm:gap-1.5 ${
                   activeFilter === filter
                     ? "bg-primary text-primary-foreground shadow-sm"
                     : "bg-muted text-muted-foreground hover:bg-border/30"
@@ -952,8 +967,8 @@ function FeedScreen({
           </div>
         </div>
 
-        {/* Pets List */}
-        <div className="space-y-4 mb-8">
+        {/* Pets List - Responsive gap */}
+        <div className="space-y-3 sm:space-y-4 mb-8">
           {petsLoading ? (
             <div className="flex justify-center py-16">
               <div className="w-10 h-10 rounded-full border-2 border-primary border-t-transparent animate-spin" />
@@ -967,16 +982,16 @@ function FeedScreen({
               />
             ))
           ) : (
-            <div className="bg-card rounded-[16px] border border-dashed border-border p-8 flex flex-col items-center justify-center text-center mt-6">
-              <div className="w-[80px] h-[80px] bg-primary/10 rounded-full flex items-center justify-center text-primary mb-4">
-                <Search size={40} strokeWidth={1.5} />
+            <div className="bg-card rounded-[12px] sm:rounded-[16px] border border-dashed border-border p-4 sm:p-8 flex flex-col items-center justify-center text-center mt-4 sm:mt-6">
+              <div className="w-16 sm:w-[80px] h-16 sm:h-[80px] bg-primary/10 rounded-full flex items-center justify-center text-primary mb-3 sm:mb-4">
+                <Search size={32} strokeWidth={1.5} className="sm:w-10 sm:h-10" />
               </div>
-              <h4 className="font-extrabold text-[18px] font-display text-foreground mb-2">
+              <h4 className="font-extrabold text-base sm:text-lg md:text-[18px] font-display text-foreground mb-1.5 sm:mb-2">
                 {activeFilter === "Todos"
                   ? "Nenhum pet publicado ainda."
                   : "Nenhum pet encontrado"}
               </h4>
-              <p className="text-[14px] text-muted-foreground font-body leading-relaxed max-w-[250px]">
+              <p className="text-xs sm:text-sm md:text-[14px] text-muted-foreground font-body leading-relaxed max-w-xs sm:max-w-[250px]">
                 {activeFilter === "Todos"
                   ? "Seja o primeiro a publicar um alerta de pet perdido!"
                   : "Não encontramos nenhum amiguinho com esses filtros na sua região."}
@@ -984,7 +999,7 @@ function FeedScreen({
               {activeFilter !== "Todos" && (
                 <button
                   onClick={() => setActiveFilter("Todos")}
-                  className="mt-6 font-bold text-primary text-[14px] font-display underline"
+                  className="mt-4 sm:mt-6 font-bold text-primary text-xs sm:text-sm md:text-[14px] font-display underline"
                 >
                   Limpar filtros
                 </button>
@@ -1009,9 +1024,9 @@ function DetailScreen({
   const whatsappLink = canContact ? `https://wa.me/${normalizedPhone}` : "";
 
   return (
-    <div className="min-h-screen bg-background pb-[100px] relative">
-      {/* Header Image */}
-      <div className="relative h-[340px] bg-muted w-full">
+    <div className="min-h-screen bg-background pb-[100px] relative safe-area-top">
+      {/* Header Image - Responsive height */}
+      <div className="relative h-[240px] sm:h-[300px] md:h-[340px] bg-muted w-full">
         <img
           src={pet.photo}
           className="w-full h-full object-cover"
@@ -1020,46 +1035,51 @@ function DetailScreen({
         <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-transparent" />
         <button
           onClick={onBack}
-          className="absolute top-10 left-4 w-10 h-10 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white z-20 hover:bg-white/30 transition-colors"
+          className="absolute top-6 sm:top-8 md:top-10 left-3 sm:left-4 w-9 sm:w-10 h-9 sm:h-10 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white z-20 hover:bg-white/30 active:scale-90 transition-all"
         >
-          <ChevronLeft size={24} strokeWidth={2.5} />
+          <ChevronLeft size={20} strokeWidth={2.5} className="sm:w-6 sm:h-6" />
         </button>
       </div>
 
-      {/* Content Sheet */}
-      <div className="bg-background rounded-t-[32px] -mt-[40px] relative z-10 pt-8 px-6 shadow-[0_-8px_20px_rgba(0,0,0,0.08)] min-h-[500px]">
-        <div className="flex justify-between items-start mb-6">
-          <div>
-            <h1 className="font-extrabold text-[32px] font-display text-foreground leading-none mb-1 uppercase tracking-tight">
+      {/* Content Sheet - Responsive padding */}
+      <div className="bg-background rounded-t-[24px] sm:rounded-t-[32px] -mt-[30px] sm:-mt-[40px] relative z-10 pt-6 sm:pt-8 px-4 sm:px-6 shadow-[0_-8px_20px_rgba(0,0,0,0.08)] min-h-[500px] safe-area-left safe-area-right">
+        {/* Header section - Responsive typography */}
+        <div className="flex justify-between items-start mb-4 sm:mb-6 gap-3">
+          <div className="min-w-0 flex-1">
+            <h1 className="font-extrabold text-xl sm:text-2xl md:text-[32px] font-display text-foreground leading-tight sm:leading-none mb-1 uppercase tracking-tight truncate">
               {pet.name}
             </h1>
-            <p className="text-primary font-bold text-[14px] font-body flex items-center gap-1 mt-2">
-              <MapPin size={14} /> {pet.distance} •{" "}
-              {pet.neighborhood}
+            <p className="text-primary font-bold text-xs sm:text-sm md:text-[14px] font-body flex items-center gap-1 mt-1 sm:mt-2 truncate">
+              <MapPin size={12} className="sm:w-4 sm:h-4 shrink-0" /> 
+              <span className="truncate">{pet.distance}</span>
+              <span className="mx-1">•</span>
+              <span className="truncate">{pet.neighborhood}</span>
             </p>
           </div>
-          <button className="w-12 h-12 rounded-full bg-muted flex items-center justify-center text-primary shrink-0">
-            <Heart size={24} strokeWidth={2} />
+          <button className="w-10 sm:w-12 h-10 sm:h-12 rounded-full bg-muted flex items-center justify-center text-primary shrink-0 active:scale-90 transition-transform">
+            <Heart size={20} strokeWidth={2} className="sm:w-6 sm:h-6" />
           </button>
         </div>
 
-        <div className="flex gap-3 mb-8 overflow-x-auto pb-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-          <div className="bg-primary/10 text-primary text-[13px] font-bold py-1.5 px-5 rounded-full font-body whitespace-nowrap">
+        {/* Tags - Responsive */}
+        <div className="flex gap-2 sm:gap-3 mb-6 sm:mb-8 overflow-x-auto pb-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+          <div className="bg-primary/10 text-primary text-[11px] sm:text-[12px] md:text-[13px] font-bold py-1 sm:py-1.5 px-3 sm:px-5 rounded-full font-body whitespace-nowrap">
             {pet.type === "gato" ? "Gato" : "Cachorro"}
           </div>
-          <div className="bg-primary/10 text-primary text-[13px] font-bold py-1.5 px-5 rounded-full font-body whitespace-nowrap">
+          <div className="bg-primary/10 text-primary text-[11px] sm:text-[12px] md:text-[13px] font-bold py-1 sm:py-1.5 px-3 sm:px-5 rounded-full font-body whitespace-nowrap">
             {pet.gender}
           </div>
-          <div className="bg-primary/10 text-primary text-[13px] font-bold py-1.5 px-5 rounded-full font-body whitespace-nowrap">
+          <div className="bg-primary/10 text-primary text-[11px] sm:text-[12px] md:text-[13px] font-bold py-1 sm:py-1.5 px-3 sm:px-5 rounded-full font-body whitespace-nowrap">
             {pet.size}
           </div>
         </div>
 
-        <div className="mb-10">
-          <h4 className="font-extrabold text-[18px] mb-3 font-display text-foreground">
+        {/* About section */}
+        <div className="mb-8 sm:mb-10">
+          <h4 className="font-extrabold text-base sm:text-lg md:text-[18px] mb-2 sm:mb-3 font-display text-foreground">
             Sobre
           </h4>
-          <p className="text-[14px] text-muted-foreground leading-[1.6] font-body">
+          <p className="text-xs sm:text-sm md:text-[14px] text-muted-foreground leading-relaxed sm:leading-[1.6] font-body">
             <strong className="text-foreground">
               Desapareceu em:
             </strong>{" "}
@@ -1075,28 +1095,30 @@ function DetailScreen({
           </p>
         </div>
 
-        <div className="mb-10">
-          <h4 className="font-extrabold text-[18px] flex items-center gap-2 mb-4 font-display text-foreground">
-            <MessageCircle size={20} className="text-primary" />{" "}
+        {/* Contact Info */}
+        <div className="mb-8 sm:mb-10">
+          <h4 className="font-extrabold text-base sm:text-lg md:text-[18px] flex items-center gap-2 mb-3 sm:mb-4 font-display text-foreground">
+            <MessageCircle size={18} className="sm:w-5 sm:h-5 text-primary" />{" "}
             Informações
           </h4>
 
-          <div className="bg-card border border-border/40 rounded-[16px] p-4 flex gap-4 items-center">
-            <div className="w-12 h-12 bg-primary/20 rounded-full flex items-center justify-center text-primary shrink-0">
-              <User size={24} />
+          <div className="bg-card border border-border/40 rounded-[12px] sm:rounded-[16px] p-3 sm:p-4 flex gap-3 sm:gap-4 items-start sm:items-center min-w-0">
+            <div className="w-10 sm:w-12 h-10 sm:h-12 bg-primary/20 rounded-full flex items-center justify-center text-primary shrink-0">
+              <User size={20} className="sm:w-6 sm:h-6" />
             </div>
-            <div>
-              <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider font-display mb-0.5">
+            <div className="min-w-0 flex-1">
+              <p className="text-[9px] sm:text-[10px] md:text-[11px] font-bold text-muted-foreground uppercase tracking-wider font-display mb-0.5">
                 Dono(a)
               </p>
-              <p className="font-bold text-[16px] font-body text-foreground">
+              <p className="font-bold text-xs sm:text-sm md:text-base font-body text-foreground truncate">
                 {pet.ownerName}
               </p>
             </div>
           </div>
         </div>
 
-        <div className="flex gap-4">
+        {/* Action Buttons - Responsive size */}
+        <div className="flex gap-2 sm:gap-4">
           <button
             type="button"
             onClick={() => {
@@ -1106,9 +1128,11 @@ function DetailScreen({
               }
               window.open(whatsappLink, "_blank", "noopener,noreferrer");
             }}
-            className="flex-1 bg-[#25D366] h-[54px] rounded-[14px] flex items-center justify-center gap-2 text-white font-bold font-display shadow-md hover:opacity-90 active:scale-[0.98] transition-all"
+            className="flex-1 bg-[#25D366] h-12 sm:h-[54px] rounded-[10px] sm:rounded-[14px] flex items-center justify-center gap-1 sm:gap-2 text-white font-bold text-xs sm:text-sm md:text-base font-display shadow-md hover:opacity-90 active:scale-[0.98] transition-all"
           >
-            <IconWhatsApp /> WhatsApp
+            <IconWhatsApp /> 
+            <span className="hidden sm:inline">WhatsApp</span>
+            <span className="sm:hidden">Chat</span>
           </button>
           <button
             type="button"
@@ -1119,9 +1143,9 @@ function DetailScreen({
               }
               window.location.href = `tel:+${normalizedPhone}`;
             }}
-            className="w-[54px] h-[54px] bg-primary rounded-[14px] flex items-center justify-center text-white shadow-md hover:opacity-90 active:scale-[0.98] transition-all"
+            className="w-12 sm:w-[54px] h-12 sm:h-[54px] bg-primary rounded-[10px] sm:rounded-[14px] flex items-center justify-center text-white shadow-md hover:opacity-90 active:scale-[0.98] transition-all"
           >
-            <Phone size={24} strokeWidth={2} />
+            <Phone size={20} strokeWidth={2} className="sm:w-6 sm:h-6" />
           </button>
         </div>
       </div>
@@ -1226,7 +1250,7 @@ function ReportScreen({
   };
 
   return (
-    <div className="min-h-screen bg-background pb-[120px] px-6 pt-8">
+    <div className="min-h-screen bg-background pb-[120px] px-6 pt-8 safe-area-container">
       <div className="flex items-center gap-4 mb-8">
         <button
           onClick={onBack}
@@ -1504,7 +1528,7 @@ function OnboardingScreen({
             className="w-full h-full object-cover"
           />
         </div>
-        <div className="flex-1 px-6 pt-10 pb-8 flex flex-col justify-between">
+      <div className="flex-1 px-6 pt-10 pb-8 flex flex-col justify-between safe-area-left safe-area-right safe-area-bottom">
           <div>
             <h2 className="font-extrabold text-[28px] font-display text-primary leading-tight mb-3">
               Bem-vindo ao BuscaPet
@@ -1542,7 +1566,7 @@ function OnboardingScreen({
           className="w-full h-full object-cover"
         />
       </div>
-      <div className="flex-1 px-6 pt-10 pb-8 flex flex-col justify-between">
+      <div className="flex-1 px-6 pt-10 pb-8 flex flex-col justify-between safe-area-left safe-area-right safe-area-bottom">
         <div>
           <h2 className="font-extrabold text-[28px] font-display text-primary leading-tight mb-3">
             Adote um pet
@@ -1618,8 +1642,8 @@ function ProfileScreen({
   };
 
   return (
-    <div className="min-h-screen bg-background pb-[100px]">
-      <div className="px-6 pt-10 flex justify-between items-center mb-8">
+    <div className="min-h-screen bg-background pb-[100px] safe-area-top">
+      <div className="px-6 pt-10 flex justify-between items-center mb-8 safe-area-left safe-area-right">
         <div className="flex items-center gap-3">
           <button
             type="button"
@@ -1664,7 +1688,7 @@ function ProfileScreen({
         </p>
       </div>
 
-      <div className="px-6 space-y-4">
+      <div className="px-6 space-y-4 safe-area-left safe-area-right">
         <h3 className="font-extrabold text-[16px] font-display text-muted-foreground uppercase tracking-wider mb-2">
           Dados Pessoais
         </h3>
@@ -1987,8 +2011,8 @@ function MyPetsScreen({
   busyPetId: string | null;
 }) {
   return (
-    <div className="min-h-screen bg-background pb-[100px]">
-      <div className="px-6 pt-10 flex items-center gap-4 mb-8">
+    <div className="min-h-screen bg-background pb-[100px] safe-area-top">
+      <div className="px-6 pt-10 flex items-center gap-4 mb-8 safe-area-left safe-area-right">
         <button
           type="button"
           onClick={onBack}
@@ -2006,7 +2030,7 @@ function MyPetsScreen({
         </div>
       </div>
 
-      <div className="px-6 space-y-4">
+      <div className="px-6 space-y-4 safe-area-left safe-area-right">
         {loading ? (
           <div className="flex justify-center py-16">
             <div className="w-10 h-10 rounded-full border-2 border-primary border-t-transparent animate-spin" />
@@ -2117,19 +2141,6 @@ export default function App() {
   const { pets: myPets, loading: myPetsLoading, error: myPetsError, refetch: refetchMyPets } = useMyPets(user?.id);
   const displayPets = dbPets.map(mapDbPetToDisplay);
   const displayMyPets = myPets.map(mapDbPetToDisplay);
-
-  useEffect(() => {
-    console.log("[auth-debug] App state", {
-      screen,
-      authReady,
-      profileLoading,
-      hasUser: Boolean(user),
-      userId: user?.id ?? null,
-      hasAuthUser: Boolean(authUser),
-      authUserId: authUser?.id ?? null,
-      profileComplete,
-    });
-  }, [screen, authReady, profileLoading, user, authUser, profileComplete]);
 
   useEffect(() => {
     if (!authReady) return;
