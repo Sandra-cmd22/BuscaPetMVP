@@ -15,7 +15,7 @@ export default function LayoutGeral({
 }: LayoutGeralProps) {
   return (
     <div
-      className={`w-full h-[100dvh] flex flex-col ${className ?? ""}`}
+      className={`w-full h-[100dvh] flex flex-col bg-white ${className ?? ""}`}
       style={{
         paddingTop: "env(safe-area-inset-top)",
         paddingBottom: safeBottom ? "env(safe-area-inset-bottom)" : undefined,
