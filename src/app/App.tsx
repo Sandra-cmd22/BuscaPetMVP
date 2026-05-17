@@ -2119,6 +2119,19 @@ export default function App() {
   const displayMyPets = myPets.map(mapDbPetToDisplay);
 
   useEffect(() => {
+    console.log("[auth-debug] App state", {
+      screen,
+      authReady,
+      profileLoading,
+      hasUser: Boolean(user),
+      userId: user?.id ?? null,
+      hasAuthUser: Boolean(authUser),
+      authUserId: authUser?.id ?? null,
+      profileComplete,
+    });
+  }, [screen, authReady, profileLoading, user, authUser, profileComplete]);
+
+  useEffect(() => {
     if (!authReady) return;
 
     if (user) {
