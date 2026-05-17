@@ -22,6 +22,8 @@ import {
 import { PET_STATUS, normalizePetStatus, type PetStatus } from "@/lib/petStatus";
 import { useProfile } from "@/hooks/useProfile";
 import { CompleteProfileModal } from "@/components/CompleteProfileModal";
+import LayoutGeral from "./components/LayoutGeral";
+import InternalScreenContainer from "./components/InternalScreenContainer";
 import {
   Search,
   MapPin,
@@ -528,7 +530,7 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
 
   if (view === "login") {
     return (
-      <div className="min-h-screen bg-white relative w-full overflow-y-auto flex flex-col px-[18px] pt-0 pb-12">
+      <div className="h-[100dvh] bg-white relative w-full overflow-y-auto flex flex-col px-[18px] pt-0 pb-12">
         <button
           onClick={() => setView("choice")}
           className="absolute top-10 left-[18px]"
@@ -648,7 +650,7 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
 
   if (view === "register") {
     return (
-      <div className="min-h-screen bg-white relative w-full overflow-y-auto flex flex-col px-[18px] pt-0 pb-12">
+      <div className="h-[100dvh] bg-white relative w-full overflow-y-auto flex flex-col px-[18px] pt-0 pb-12">
         <button
           onClick={() => setView("choice")}
           className="absolute top-10 left-[18px]"
@@ -742,7 +744,7 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
   }
 
   return (
-    <div className="min-h-screen bg-white relative w-full overflow-hidden flex flex-col">
+    <div className="h-[100dvh] bg-white relative w-full overflow-hidden flex flex-col">
       <div className="h-[62vh] w-full bg-primary rounded-bl-[150px] relative flex flex-col items-center justify-center shrink-0">
         <BuscaPetLogo className="w-[180px] h-[135px] text-white" />
       </div>
@@ -862,7 +864,7 @@ function FeedScreen({
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="px-3 sm:px-5 pt-2 sm:pt-3 safe-area-top">
+      <InternalScreenContainer className="pt-2 sm:pt-3">
         {/* Header - Responsive spacing */}
         <div className="flex justify-between items-center gap-2 sm:gap-3 mb-4 sm:mb-6">
           <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
@@ -1007,7 +1009,7 @@ function FeedScreen({
             </div>
           )}
         </div>
-      </div>
+      </InternalScreenContainer>
     </div>
   );
 }
@@ -1250,7 +1252,8 @@ function ReportScreen({
   };
 
   return (
-    <div className="min-h-screen bg-background px-6 pt-8 safe-area-top">
+    <div className="min-h-screen bg-background">
+      <InternalScreenContainer className="pt-8">
       <div className="flex items-center gap-4 mb-8">
         <button
           onClick={onBack}
@@ -1489,6 +1492,7 @@ function ReportScreen({
           "Publicar Alerta"
         )}
       </button>
+      </InternalScreenContainer>
     </div>
   );
 }
@@ -1643,55 +1647,56 @@ function ProfileScreen({
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="px-6 pt-6 flex justify-between items-center mb-6 safe-area-top">
-        <div className="flex items-center gap-3">
+      <InternalScreenContainer>
+        <div className="pt-6 flex justify-between items-center mb-6">
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={onBack}
+              className="w-10 h-10 rounded-full bg-card border border-border/40 flex items-center justify-center text-foreground"
+            >
+              <ChevronLeft size={20} strokeWidth={2.2} />
+            </button>
+            <h1 className="font-extrabold text-[28px] font-display text-foreground">
+              Perfil
+            </h1>
+          </div>
           <button
             type="button"
-            onClick={onBack}
-            className="w-10 h-10 rounded-full bg-card border border-border/40 flex items-center justify-center text-foreground"
+            onClick={onLogout}
+            className="w-10 h-10 bg-card border border-border/40 rounded-full flex items-center justify-center text-destructive"
           >
-            <ChevronLeft size={20} strokeWidth={2.2} />
-          </button>
-          <h1 className="font-extrabold text-[28px] font-display text-foreground">
-            Perfil
-          </h1>
-        </div>
-        <button
-          type="button"
-          onClick={onLogout}
-          className="w-10 h-10 bg-card border border-border/40 rounded-full flex items-center justify-center text-destructive"
-        >
-          <LogOut size={20} strokeWidth={2.5} />
-        </button>
-      </div>
-
-      <div className="flex flex-col items-center mt-2 mb-8">
-        <div className="relative mb-4">
-          <img
-            src={user.avatar}
-            className="w-[120px] h-[120px] rounded-full object-cover border-4 border-card shadow-sm"
-            alt={user.name}
-          />
-          <button
-            type="button"
-            onClick={() => setIsEditing((current) => !current)}
-            className="absolute bottom-0 right-0 w-10 h-10 bg-primary rounded-full flex items-center justify-center text-white border-2 border-background shadow-md"
-          >
-            <Edit size={18} strokeWidth={2} />
+            <LogOut size={20} strokeWidth={2.5} />
           </button>
         </div>
-        <h2 className="font-extrabold text-[24px] font-display text-foreground">
-          {user.name}
-        </h2>
-        <p className="font-bold text-[14px] text-primary font-body break-all px-4 text-center">
-          {user.email}
-        </p>
-      </div>
 
-      <div className="px-6 space-y-4">
-        <h3 className="font-extrabold text-[16px] font-display text-muted-foreground uppercase tracking-wider mb-2">
-          Dados Pessoais
-        </h3>
+        <div className="flex flex-col items-center mt-2 mb-8">
+          <div className="relative mb-4">
+            <img
+              src={user.avatar}
+              className="w-[120px] h-[120px] rounded-full object-cover border-4 border-card shadow-sm"
+              alt={user.name}
+            />
+            <button
+              type="button"
+              onClick={() => setIsEditing((current) => !current)}
+              className="absolute bottom-0 right-0 w-10 h-10 bg-primary rounded-full flex items-center justify-center text-white border-2 border-background shadow-md"
+            >
+              <Edit size={18} strokeWidth={2} />
+            </button>
+          </div>
+          <h2 className="font-extrabold text-[24px] font-display text-foreground">
+            {user.name}
+          </h2>
+          <p className="font-bold text-[14px] text-primary font-body break-all px-4 text-center">
+            {user.email}
+          </p>
+        </div>
+
+        <div className="space-y-4">
+          <h3 className="font-extrabold text-[16px] font-display text-muted-foreground uppercase tracking-wider mb-2">
+            Dados Pessoais
+          </h3>
 
         {isEditing && (
           <div className="bg-card border border-border/40 rounded-[16px] p-4 space-y-3">
@@ -1817,14 +1822,15 @@ function ProfileScreen({
           </div>
         </div>
 
-        <button
-          type="button"
-          onClick={onOpenMyPets}
-          className="w-full h-[52px] rounded-[14px] bg-primary text-primary-foreground font-bold font-display shadow-sm"
-        >
-          Meus Pets
-        </button>
-      </div>
+          <button
+            type="button"
+            onClick={onOpenMyPets}
+            className="w-full h-[52px] rounded-[14px] bg-primary text-primary-foreground font-bold font-display shadow-sm"
+          >
+            Meus Pets
+          </button>
+        </div>
+      </InternalScreenContainer>
     </div>
   );
 }
@@ -2012,25 +2018,26 @@ function MyPetsScreen({
 }) {
   return (
     <div className="min-h-screen bg-background">
-      <div className="px-6 pt-6 flex items-center gap-4 mb-6 safe-area-top">
-        <button
-          type="button"
-          onClick={onBack}
-          className="w-10 h-10 rounded-full bg-card border border-border/40 flex items-center justify-center text-foreground"
-        >
-          <ChevronLeft size={20} strokeWidth={2.2} />
-        </button>
-        <div>
-          <h1 className="font-extrabold text-[28px] font-display text-foreground">
-            Meus Pets
-          </h1>
-          <p className="text-[13px] text-muted-foreground font-body">
-            Gerencie seus anúncios
-          </p>
+      <InternalScreenContainer>
+        <div className="pt-6 flex items-center gap-4 mb-6">
+          <button
+            type="button"
+            onClick={onBack}
+            className="w-10 h-10 rounded-full bg-card border border-border/40 flex items-center justify-center text-foreground"
+          >
+            <ChevronLeft size={20} strokeWidth={2.2} />
+          </button>
+          <div>
+            <h1 className="font-extrabold text-[28px] font-display text-foreground">
+              Meus Pets
+            </h1>
+            <p className="text-[13px] text-muted-foreground font-body">
+              Gerencie seus anúncios
+            </p>
+          </div>
         </div>
-      </div>
 
-      <div className="px-6 space-y-4">
+        <div className="space-y-4">
         {loading ? (
           <div className="flex justify-center py-16">
             <div className="w-10 h-10 rounded-full border-2 border-primary border-t-transparent animate-spin" />
@@ -2115,7 +2122,8 @@ function MyPetsScreen({
             </div>
           ))
         )}
-      </div>
+        </div>
+      </InternalScreenContainer>
     </div>
   );
 }
@@ -2326,14 +2334,16 @@ export default function App() {
           />
         )}
         {screen === "feed" && user && (
-          <FeedScreen
-            pets={displayPets}
-            petsLoading={petsLoading}
-            onDetail={handleDetail}
-            onOpenProfile={() => handleNavigate("profile")}
-            onEditLocation={() => handleNavigate("profile")}
-            user={user}
-          />
+          <LayoutGeral>
+            <FeedScreen
+              pets={displayPets}
+              petsLoading={petsLoading}
+              onDetail={handleDetail}
+              onOpenProfile={() => handleNavigate("profile")}
+              onEditLocation={() => handleNavigate("profile")}
+              user={user}
+            />
+          </LayoutGeral>
         )}
         {screen === "detail" && selectedPet && profileComplete && (
           <DetailScreen
@@ -2342,36 +2352,42 @@ export default function App() {
           />
         )}
         {screen === "profile" && user && profileComplete && (
-          <ProfileScreen
-            user={user}
-            onBack={() => handleNavigate("feed")}
-            onOpenMyPets={() => handleNavigate("my-pets")}
-            onSaveProfile={completeProfile}
-            onLogout={handleLogout}
-          />
+          <LayoutGeral>
+            <ProfileScreen
+              user={user}
+              onBack={() => handleNavigate("feed")}
+              onOpenMyPets={() => handleNavigate("my-pets")}
+              onSaveProfile={completeProfile}
+              onLogout={handleLogout}
+            />
+          </LayoutGeral>
         )}
         {screen === "my-pets" && user && profileComplete && (
-          <MyPetsScreen
-            pets={displayMyPets}
-            loading={myPetsLoading}
-            error={myPetsError}
-            onBack={() => handleNavigate("profile")}
-            onEdit={handleEditPet}
-            onDelete={handleDeletePet}
-            onMarkFound={handleMarkFound}
-            busyPetId={petActionLoadingId}
-          />
+          <LayoutGeral>
+            <MyPetsScreen
+              pets={displayMyPets}
+              loading={myPetsLoading}
+              error={myPetsError}
+              onBack={() => handleNavigate("profile")}
+              onEdit={handleEditPet}
+              onDelete={handleDeletePet}
+              onMarkFound={handleMarkFound}
+              busyPetId={petActionLoadingId}
+            />
+          </LayoutGeral>
         )}
         {screen === "report" && user && profileComplete && authUser && (
-          <ReportScreen
-            onSuccess={async () => {
-              await refetchPets();
-              handleNavigate("feed");
-            }}
-            onBack={() => handleNavigate("feed")}
-            user={user}
-            authUserId={authUser.id}
-          />
+          <LayoutGeral>
+            <ReportScreen
+              onSuccess={async () => {
+                await refetchPets();
+                handleNavigate("feed");
+              }}
+              onBack={() => handleNavigate("feed")}
+              user={user}
+              authUserId={authUser.id}
+            />
+          </LayoutGeral>
         )}
 
         <CompleteProfileModal
