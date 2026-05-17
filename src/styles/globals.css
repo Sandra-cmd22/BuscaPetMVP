@@ -28,12 +28,14 @@ body {
   padding: 0;
   width: 100%;
   height: 100%;
-  background: transparent;
+  min-height: 100%;
+  background: #00866f;
   -webkit-font-smoothing: antialiased;
   -webkit-touch-callout: none;
   -webkit-user-select: none;
   user-select: none;
-  overflow-x: hidden;
+  overflow: hidden;
+  overscroll-behavior: none;
 }
 
 body {
@@ -42,13 +44,26 @@ body {
 
 #root {
   width: 100%;
-  min-height: 100vh;
+  height: 100%;
+  min-height: 100dvh;
   background: #00866f;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
+}
+
+.screen {
+  min-height: 100dvh;
+  height: 100dvh;
+  overflow: hidden;
+}
+
+.content {
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: none;
 }
 
 /* ───────────────────────────────────────────────────────────────────────────── */
@@ -79,50 +94,12 @@ body {
 }
 
 /* ───────────────────────────────────────────────────────────────────────────── */
-/* Header - Avoid Status Bar                                                      */
+/* Keep safe-area behavior explicit                                                */
 /* ───────────────────────────────────────────────────────────────────────────── */
 
-header,
-.header {
-  padding-top: max(1rem, env(safe-area-inset-top));
-  padding-left: max(1rem, env(safe-area-inset-left));
-  padding-right: max(1rem, env(safe-area-inset-right));
-}
-
-/* ───────────────────────────────────────────────────────────────────────────── */
-/* Bottom Navigation - Avoid Home Indicator                                        */
-/* ───────────────────────────────────────────────────────────────────────────── */
-
-nav,
-.nav,
-.bottom-nav {
-  padding-left: env(safe-area-inset-left);
-  padding-right: env(safe-area-inset-right);
-}
-
-/* ───────────────────────────────────────────────────────────────────────────── */
-/* Scrollable Content - Safe Area Awareness                                       */
-/* ───────────────────────────────────────────────────────────────────────────── */
-
-.scrollable,
-.overflow-y-auto {
-  padding-left: env(safe-area-inset-left);
-  padding-right: env(safe-area-inset-right);
+.scrollable {
   -webkit-overflow-scrolling: touch;
   scroll-behavior: smooth;
-}
-
-/* ───────────────────────────────────────────────────────────────────────────── */
-/* Modal/Dialog - Fullscreen Safe Area                                            */
-/* ───────────────────────────────────────────────────────────────────────────── */
-
-.modal,
-.dialog,
-[role="dialog"] {
-  padding-top: env(safe-area-inset-top);
-  padding-bottom: env(safe-area-inset-bottom);
-  padding-left: env(safe-area-inset-left);
-  padding-right: env(safe-area-inset-right);
 }
 
 /* ───────────────────────────────────────────────────────────────────────────── */
@@ -130,7 +107,6 @@ nav,
 /* ───────────────────────────────────────────────────────────────────────────── */
 
 .min-h-screen {
-  min-height: 100vh;
   min-height: 100dvh;
 }
 
@@ -156,6 +132,7 @@ nav,
 /* Line clamping */
 .line-clamp-1 {
   display: -webkit-box;
+  line-clamp: 1;
   -webkit-line-clamp: 1;
   -webkit-box-orient: vertical;
   overflow: hidden;
@@ -163,6 +140,7 @@ nav,
 
 .line-clamp-2 {
   display: -webkit-box;
+  line-clamp: 2;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
@@ -170,6 +148,7 @@ nav,
 
 .line-clamp-3 {
   display: -webkit-box;
+  line-clamp: 3;
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
@@ -194,12 +173,16 @@ nav,
   textarea,
   select {
     font-size: 16px;
+    appearance: none;
     -webkit-appearance: none;
+    border-radius: 0;
     -webkit-border-radius: 0;
   }
 
   /* Remover highlight padrão no click/tap */
-  -webkit-tap-highlight-color: transparent;
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
 
   /* Smooth scrolling em iOS */
   .scrollable {
@@ -224,7 +207,6 @@ nav,
   html,
   body,
   #root {
-    height: 100vh;
     height: 100dvh;
   }
 }
@@ -233,29 +215,7 @@ nav,
   html,
   body,
   #root {
-    height: 100vh;
     height: 100dvh;
-  }
-
-  /* Reduzir padding em landscape para aproveitar melhor o espaço */
-  header,
-  .header {
-    padding-top: max(0.5rem, env(safe-area-inset-top));
-  }
-}
-
-/* ───────────────────────────────────────────────────────────────────────────── */
-/* Notch Support (Dynamic Island)                                                 */
-/* ───────────────────────────────────────────────────────────────────────────── */
-
-@supports (padding: max(0px)) {
-  .notch-aware {
-    padding-top: max(1.5rem, env(safe-area-inset-top));
-  }
-
-  .content-with-notch {
-    padding-left: max(1rem, env(safe-area-inset-left));
-    padding-right: max(1rem, env(safe-area-inset-right));
   }
 }
 

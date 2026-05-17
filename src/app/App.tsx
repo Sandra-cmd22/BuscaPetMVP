@@ -454,7 +454,7 @@ function BottomNav({
   if (!profileComplete) return null;
 
   return (
-    <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white border-t border-border/30 z-50 pb-[env(safe-area-inset-bottom)]">
+    <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md h-[calc(70px+env(safe-area-inset-bottom))] bg-white border-t border-border/30 z-50 pb-0">
       <div className="flex items-center justify-around h-[70px] px-6">
         <button
           onClick={() => onNavigate("feed")}
@@ -528,7 +528,7 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
 
   if (view === "login") {
     return (
-      <div className="min-h-screen bg-white relative w-full overflow-y-auto flex flex-col px-[18px] py-12 safe-area-container">
+      <div className="min-h-screen bg-white relative w-full overflow-y-auto flex flex-col px-[18px] pt-0 pb-12">
         <button
           onClick={() => setView("choice")}
           className="absolute top-10 left-[18px]"
@@ -648,7 +648,7 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
 
   if (view === "register") {
     return (
-      <div className="min-h-screen bg-white relative w-full overflow-y-auto flex flex-col px-[18px] py-12 safe-area-container">
+      <div className="min-h-screen bg-white relative w-full overflow-y-auto flex flex-col px-[18px] pt-0 pb-12">
         <button
           onClick={() => setView("choice")}
           className="absolute top-10 left-[18px]"
@@ -862,7 +862,7 @@ function FeedScreen({
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="px-3 sm:px-5 pt-6 sm:pt-8 safe-area-left safe-area-right">
+      <div className="px-3 sm:px-5 pt-2 sm:pt-3 safe-area-top">
         {/* Header - Responsive spacing */}
         <div className="flex justify-between items-center gap-2 sm:gap-3 mb-4 sm:mb-6">
           <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
@@ -1026,7 +1026,7 @@ function DetailScreen({
   return (
     <div className="min-h-screen bg-background relative">
       {/* Header Image - Responsive height */}
-      <div className="relative h-[240px] sm:h-[300px] md:h-[340px] bg-muted w-full -mt-[env(safe-area-inset-top)]">
+      <div className="relative h-[calc(240px+env(safe-area-inset-top))] sm:h-[calc(300px+env(safe-area-inset-top))] md:h-[calc(340px+env(safe-area-inset-top))] bg-muted w-full -mt-[env(safe-area-inset-top)]">
         <img
           src={pet.photo}
           className="w-full h-full object-cover"
@@ -1035,14 +1035,14 @@ function DetailScreen({
         <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-transparent" />
         <button
           onClick={onBack}
-          className="absolute top-[calc(env(safe-area-inset-top)+1.5rem)] sm:top-[calc(env(safe-area-inset-top)+2rem)] md:top-[calc(env(safe-area-inset-top)+2.5rem)] left-3 sm:left-4 w-9 sm:w-10 h-9 sm:h-10 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white z-20 hover:bg-white/30 active:scale-90 transition-all"
+          className="absolute top-[calc(env(safe-area-inset-top)+1rem)] sm:top-[calc(env(safe-area-inset-top)+1.25rem)] md:top-[calc(env(safe-area-inset-top)+1.5rem)] left-3 sm:left-4 w-9 sm:w-10 h-9 sm:h-10 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white z-20 hover:bg-white/30 active:scale-90 transition-all"
         >
           <ChevronLeft size={20} strokeWidth={2.5} className="sm:w-6 sm:h-6" />
         </button>
       </div>
 
       {/* Content Sheet - Responsive padding */}
-      <div className="bg-background rounded-t-[24px] sm:rounded-t-[32px] -mt-[30px] sm:-mt-[40px] relative z-10 pt-6 sm:pt-8 px-4 sm:px-6 shadow-[0_-8px_20px_rgba(0,0,0,0.08)] min-h-[500px] safe-area-left safe-area-right">
+      <div className="bg-background rounded-t-[24px] sm:rounded-t-[32px] -mt-[30px] sm:-mt-[40px] relative z-10 pt-6 sm:pt-8 px-4 sm:px-6 shadow-[0_-8px_20px_rgba(0,0,0,0.08)] min-h-[500px]">
         {/* Header section - Responsive typography */}
         <div className="flex justify-between items-start mb-4 sm:mb-6 gap-3">
           <div className="min-w-0 flex-1">
@@ -1250,7 +1250,7 @@ function ReportScreen({
   };
 
   return (
-    <div className="min-h-screen bg-background px-6 pt-8">
+    <div className="min-h-screen bg-background px-6 pt-8 safe-area-top">
       <div className="flex items-center gap-4 mb-8">
         <button
           onClick={onBack}
@@ -1512,7 +1512,7 @@ function OnboardingScreen({
 
   if (step === 0) {
     return (
-      <div className="absolute inset-0 bg-primary flex items-center justify-center w-full overflow-hidden">
+      <div className="relative w-full h-[100dvh] bg-primary flex items-center justify-center overflow-hidden">
         <BuscaPetLogo className="w-[200px] h-[150px] text-white" />
       </div>
     );
@@ -1520,16 +1520,16 @@ function OnboardingScreen({
 
   if (step === 1) {
     return (
-      <div className="min-h-screen bg-white relative w-full overflow-hidden flex flex-col -mt-[env(safe-area-inset-top)] -mt-[env(safe-area-inset-top)]">
-        <div className="h-[60vh] w-full relative bg-primary rounded-bl-[120px] overflow-hidden">
-          <img
-            src="https://images.unsplash.com/photo-1629740067905-bd3f515aa739?w=800&fit=crop"
-            alt="Puppy"
-            className="w-full h-full object-cover"
-          />
-        </div>
-      <div className="flex-1 px-6 pt-10 pb-8 flex flex-col justify-between safe-area-left safe-area-right">
-          <div>
+      <div className="relative w-full h-[100dvh] overflow-hidden bg-primary">
+        <img
+          src="https://images.unsplash.com/photo-1629740067905-bd3f515aa739?w=800&fit=crop"
+          alt="Puppy"
+          className="absolute inset-0 w-full h-full object-cover"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/25 via-black/10 to-transparent" />
+
+        <div className="relative z-10 h-full flex flex-col justify-end px-6 pt-[calc(env(safe-area-inset-top)+20px)] pb-[calc(env(safe-area-inset-bottom)+20px)]">
+          <div className="bg-white rounded-[24px] p-6 shadow-[0_12px_30px_rgba(0,0,0,0.18)]">
             <h2 className="font-extrabold text-[28px] font-display text-primary leading-tight mb-3">
               Bem-vindo ao BuscaPet
             </h2>
@@ -1537,7 +1537,43 @@ function OnboardingScreen({
               Um lugarzinho onde ajudamos você e outras pessoas
               a encontrar seu amiguinho
             </p>
+
+            <div className="flex flex-col items-center gap-6 mt-8">
+              <div className="flex gap-2">
+                <div className="w-2 h-2 rounded-full bg-primary" />
+                <div className="w-2 h-2 rounded-full bg-secondary" />
+                <div className="w-2 h-2 rounded-full bg-secondary" />
+              </div>
+              <button
+                onClick={() => setStep(2)}
+                className="w-full bg-primary text-primary-foreground font-bold text-[16px] font-display h-[56px] rounded-[14px] shadow-md active:scale-[0.98] transition-transform"
+              >
+                Próximo
+              </button>
+            </div>
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative w-full h-[100dvh] overflow-hidden bg-primary">
+      <img
+        src="https://images.unsplash.com/photo-1542583479-28899e4763ea?w=800&fit=crop"
+        alt="Woman hugging dog"
+        className="absolute inset-0 w-full h-full object-cover"
+      />
+      <div className="absolute inset-0 bg-gradient-to-t from-black/25 via-black/10 to-transparent" />
+
+      <div className="relative z-10 h-full flex flex-col justify-end px-6 pt-[calc(env(safe-area-inset-top)+20px)] pb-[calc(env(safe-area-inset-bottom)+20px)]">
+        <div className="bg-white rounded-[24px] p-6 shadow-[0_12px_30px_rgba(0,0,0,0.18)]">
+          <h2 className="font-extrabold text-[28px] font-display text-primary leading-tight mb-3">
+            Adote um pet
+          </h2>
+          <p className="font-body text-[16px] text-muted-foreground leading-relaxed">
+            Aqui também ajudamos a você adotar um amiguinho
+          </p>
 
           <div className="flex flex-col items-center gap-6 mt-8">
             <div className="flex gap-2">
@@ -1546,48 +1582,12 @@ function OnboardingScreen({
               <div className="w-2 h-2 rounded-full bg-secondary" />
             </div>
             <button
-              onClick={() => setStep(2)}
+              onClick={onFinish}
               className="w-full bg-primary text-primary-foreground font-bold text-[16px] font-display h-[56px] rounded-[14px] shadow-md active:scale-[0.98] transition-transform"
             >
-              Próximo
+              Começar
             </button>
           </div>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="min-h-screen bg-white relative w-full overflow-hidden flex flex-col">
-      <div className="h-[60vh] w-full relative bg-primary rounded-bl-[120px] overflow-hidden">
-        <img
-          src="https://images.unsplash.com/photo-1542583479-28899e4763ea?w=800&fit=crop"
-          alt="Woman hugging dog"
-          className="w-full h-full object-cover"
-        />
-      </div>
-      <div className="flex-1 px-6 pt-10 pb-8 flex flex-col justify-between safe-area-left safe-area-right">
-        <div>
-          <h2 className="font-extrabold text-[28px] font-display text-primary leading-tight mb-3">
-            Adote um pet
-          </h2>
-          <p className="font-body text-[16px] text-muted-foreground leading-relaxed">
-            Aqui também ajudamos a você adotar um amiguinho
-          </p>
-        </div>
-
-        <div className="flex flex-col items-center gap-6 mt-8">
-          <div className="flex gap-2">
-            <div className="w-2 h-2 rounded-full bg-primary" />
-            <div className="w-2 h-2 rounded-full bg-secondary" />
-            <div className="w-2 h-2 rounded-full bg-secondary" />
-          </div>
-          <button
-            onClick={onFinish}
-            className="w-full bg-primary text-primary-foreground font-bold text-[16px] font-display h-[56px] rounded-[14px] shadow-md active:scale-[0.98] transition-transform"
-          >
-            Começar
-          </button>
         </div>
       </div>
     </div>
@@ -1643,7 +1643,7 @@ function ProfileScreen({
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="px-6 pt-6 flex justify-between items-center mb-6 safe-area-left safe-area-right">
+      <div className="px-6 pt-6 flex justify-between items-center mb-6 safe-area-top">
         <div className="flex items-center gap-3">
           <button
             type="button"
@@ -1688,7 +1688,7 @@ function ProfileScreen({
         </p>
       </div>
 
-      <div className="px-6 space-y-4 safe-area-left safe-area-right">
+      <div className="px-6 space-y-4">
         <h3 className="font-extrabold text-[16px] font-display text-muted-foreground uppercase tracking-wider mb-2">
           Dados Pessoais
         </h3>
@@ -2012,7 +2012,7 @@ function MyPetsScreen({
 }) {
   return (
     <div className="min-h-screen bg-background">
-      <div className="px-6 pt-6 flex items-center gap-4 mb-6 safe-area-left safe-area-right">
+      <div className="px-6 pt-6 flex items-center gap-4 mb-6 safe-area-top">
         <button
           type="button"
           onClick={onBack}
@@ -2030,7 +2030,7 @@ function MyPetsScreen({
         </div>
       </div>
 
-      <div className="px-6 space-y-4 safe-area-left safe-area-right">
+      <div className="px-6 space-y-4">
         {loading ? (
           <div className="flex justify-center py-16">
             <div className="w-10 h-10 rounded-full border-2 border-primary border-t-transparent animate-spin" />
@@ -2288,6 +2288,8 @@ export default function App() {
 
   const showCompleteProfileModal =
     Boolean(user && !profileLoading && !profileComplete);
+  const hasBottomNav =
+    profileComplete && screen !== "login" && screen !== "onboarding";
 
   if (!authReady) {
     return (
@@ -2300,9 +2302,11 @@ export default function App() {
   }
 
   return (
-    <div className="screen relative w-full min-h-[100vh] flex justify-center">
+    <div className="screen relative w-full min-h-[100dvh] flex justify-center">
       <div className="background pointer-events-none absolute inset-0 bg-[#00866f]" />
-      <div className="content relative z-10 w-full max-w-md flex-1 min-h-0 overflow-x-hidden flex flex-col pt-[env(safe-area-inset-top)]">
+      <div
+        className={`content relative z-10 w-full max-w-md flex-1 min-h-0 overflow-x-hidden flex flex-col ${hasBottomNav ? "pb-[calc(70px+env(safe-area-inset-bottom))]" : "pb-0"}`}
+      >
         {screen === "onboarding" && (
           <OnboardingScreen
             onFinish={() => handleNavigate("login")}
