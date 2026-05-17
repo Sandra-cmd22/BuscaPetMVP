@@ -513,7 +513,7 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
 
   if (view === "login") {
     return (
-      <div className="min-h-screen bg-white relative w-full overflow-y-auto flex flex-col px-[18px] py-12">
+      <div className="min-h-screen bg-white relative w-full overflow-y-auto flex flex-col px-[18px] py-12 safe-area-container">
         <button
           onClick={() => setView("choice")}
           className="absolute top-10 left-[18px]"
@@ -633,7 +633,7 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
 
   if (view === "register") {
     return (
-      <div className="min-h-screen bg-white relative w-full overflow-y-auto flex flex-col px-[18px] py-12">
+      <div className="min-h-screen bg-white relative w-full overflow-y-auto flex flex-col px-[18px] py-12 safe-area-container">
         <button
           onClick={() => setView("choice")}
           className="absolute top-10 left-[18px]"
@@ -846,8 +846,8 @@ function FeedScreen({
   };
 
   return (
-    <div className="min-h-screen bg-background pb-[100px]">
-      <div className="px-5 pt-8">
+    <div className="min-h-screen bg-background pb-[100px] safe-area-top">
+      <div className="px-5 pt-8 safe-area-left safe-area-right">
         {/* Header */}
         <div className="flex justify-between items-center mb-6">
           <div className="flex items-center gap-3">
@@ -1009,7 +1009,7 @@ function DetailScreen({
   const whatsappLink = canContact ? `https://wa.me/${normalizedPhone}` : "";
 
   return (
-    <div className="min-h-screen bg-background pb-[100px] relative">
+    <div className="min-h-screen bg-background pb-[100px] relative safe-area-top">
       {/* Header Image */}
       <div className="relative h-[340px] bg-muted w-full">
         <img
@@ -1027,7 +1027,7 @@ function DetailScreen({
       </div>
 
       {/* Content Sheet */}
-      <div className="bg-background rounded-t-[32px] -mt-[40px] relative z-10 pt-8 px-6 shadow-[0_-8px_20px_rgba(0,0,0,0.08)] min-h-[500px]">
+      <div className="bg-background rounded-t-[32px] -mt-[40px] relative z-10 pt-8 px-6 shadow-[0_-8px_20px_rgba(0,0,0,0.08)] min-h-[500px] safe-area-left safe-area-right">
         <div className="flex justify-between items-start mb-6">
           <div>
             <h1 className="font-extrabold text-[32px] font-display text-foreground leading-none mb-1 uppercase tracking-tight">
@@ -1226,7 +1226,7 @@ function ReportScreen({
   };
 
   return (
-    <div className="min-h-screen bg-background pb-[120px] px-6 pt-8">
+    <div className="min-h-screen bg-background pb-[120px] px-6 pt-8 safe-area-container">
       <div className="flex items-center gap-4 mb-8">
         <button
           onClick={onBack}
@@ -1504,7 +1504,7 @@ function OnboardingScreen({
             className="w-full h-full object-cover"
           />
         </div>
-        <div className="flex-1 px-6 pt-10 pb-8 flex flex-col justify-between">
+      <div className="flex-1 px-6 pt-10 pb-8 flex flex-col justify-between safe-area-left safe-area-right safe-area-bottom">
           <div>
             <h2 className="font-extrabold text-[28px] font-display text-primary leading-tight mb-3">
               Bem-vindo ao BuscaPet
@@ -1542,7 +1542,7 @@ function OnboardingScreen({
           className="w-full h-full object-cover"
         />
       </div>
-      <div className="flex-1 px-6 pt-10 pb-8 flex flex-col justify-between">
+      <div className="flex-1 px-6 pt-10 pb-8 flex flex-col justify-between safe-area-left safe-area-right safe-area-bottom">
         <div>
           <h2 className="font-extrabold text-[28px] font-display text-primary leading-tight mb-3">
             Adote um pet
@@ -1618,8 +1618,8 @@ function ProfileScreen({
   };
 
   return (
-    <div className="min-h-screen bg-background pb-[100px]">
-      <div className="px-6 pt-10 flex justify-between items-center mb-8">
+    <div className="min-h-screen bg-background pb-[100px] safe-area-top">
+      <div className="px-6 pt-10 flex justify-between items-center mb-8 safe-area-left safe-area-right">
         <div className="flex items-center gap-3">
           <button
             type="button"
@@ -1664,7 +1664,7 @@ function ProfileScreen({
         </p>
       </div>
 
-      <div className="px-6 space-y-4">
+      <div className="px-6 space-y-4 safe-area-left safe-area-right">
         <h3 className="font-extrabold text-[16px] font-display text-muted-foreground uppercase tracking-wider mb-2">
           Dados Pessoais
         </h3>
@@ -1987,8 +1987,8 @@ function MyPetsScreen({
   busyPetId: string | null;
 }) {
   return (
-    <div className="min-h-screen bg-background pb-[100px]">
-      <div className="px-6 pt-10 flex items-center gap-4 mb-8">
+    <div className="min-h-screen bg-background pb-[100px] safe-area-top">
+      <div className="px-6 pt-10 flex items-center gap-4 mb-8 safe-area-left safe-area-right">
         <button
           type="button"
           onClick={onBack}
@@ -2006,7 +2006,7 @@ function MyPetsScreen({
         </div>
       </div>
 
-      <div className="px-6 space-y-4">
+      <div className="px-6 space-y-4 safe-area-left safe-area-right">
         {loading ? (
           <div className="flex justify-center py-16">
             <div className="w-10 h-10 rounded-full border-2 border-primary border-t-transparent animate-spin" />
@@ -2117,19 +2117,6 @@ export default function App() {
   const { pets: myPets, loading: myPetsLoading, error: myPetsError, refetch: refetchMyPets } = useMyPets(user?.id);
   const displayPets = dbPets.map(mapDbPetToDisplay);
   const displayMyPets = myPets.map(mapDbPetToDisplay);
-
-  useEffect(() => {
-    console.log("[auth-debug] App state", {
-      screen,
-      authReady,
-      profileLoading,
-      hasUser: Boolean(user),
-      userId: user?.id ?? null,
-      hasAuthUser: Boolean(authUser),
-      authUserId: authUser?.id ?? null,
-      profileComplete,
-    });
-  }, [screen, authReady, profileLoading, user, authUser, profileComplete]);
 
   useEffect(() => {
     if (!authReady) return;

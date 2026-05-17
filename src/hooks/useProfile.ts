@@ -101,41 +101,13 @@ export function useProfile() {
   );
 
   const clearUser = useCallback(() => {
-    console.log("[auth-debug] clearUser() -> resetting user/auth/profile to null");
     setUser(null);
     setAuthUser(null);
     setProfile(null);
   }, []);
 
   useEffect(() => {
-    const getTokenStorageDebug = () => {
-      try {
-        const exactKey = "sb-rgubdienrqqdrsvwwuum-auth-token";
-        const exactValue = localStorage.getItem(exactKey);
-        const allKeys = Object.keys(localStorage).filter((key) =>
-          key.includes("-auth-token"),
-        );
-        return {
-          exactKey,
-          exactExists: Boolean(exactValue),
-          authTokenKeys: allKeys,
-        };
-      } catch {
-        return {
-          exactKey: "sb-rgubdienrqqdrsvwwuum-auth-token",
-          exactExists: false,
-          authTokenKeys: [] as string[],
-        };
-      }
-    };
-
     const applySession = async (session: Session | null) => {
-      console.log("[auth-debug] applySession()", {
-        hasSession: Boolean(session),
-        userId: session?.user?.id ?? null,
-        email: session?.user?.email ?? null,
-        storage: getTokenStorageDebug(),
-      });
       try {
         if (session?.user) {
           await syncUserFromAuth(session.user);
@@ -159,13 +131,6 @@ export function useProfile() {
           data: { session },
         } = await supabase.auth.getSession();
 
-        console.log("[auth-debug] init:getSession()", {
-          hasSession: Boolean(session),
-          userId: session?.user?.id ?? null,
-          email: session?.user?.email ?? null,
-          storage: getTokenStorageDebug(),
-        });
-
         if (session?.user) {
           await applySession(session);
         } else {
@@ -173,12 +138,6 @@ export function useProfile() {
           const {
             data: { user: currentUser },
           } = await supabase.auth.getUser();
-          console.log("[auth-debug] init:getUser() fallback", {
-            hasUser: Boolean(currentUser),
-            userId: currentUser?.id ?? null,
-            email: currentUser?.email ?? null,
-            storage: getTokenStorageDebug(),
-          });
           if (currentUser) {
             await syncUserFromAuth(currentUser);
           } else {
@@ -196,14 +155,7 @@ export function useProfile() {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log("[auth-debug] onAuthStateChange", {
-        event,
-        hasSession: Boolean(session),
-        userId: session?.user?.id ?? null,
-        email: session?.user?.email ?? null,
-        storage: getTokenStorageDebug(),
-      });
+    } = supabase.auth.onAuthStateChange((_event, session) => {
       void applySession(session);
     });
 

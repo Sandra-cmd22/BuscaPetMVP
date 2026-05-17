@@ -2,7 +2,25 @@ import { defineConfig } from 'vite'
 import path from 'path'
 import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
+import os from 'os'
 
+// Obter IP local automaticamente
+function getLocalIP() {
+  const interfaces = os.networkInterfaces()
+  for (const name of Object.keys(interfaces)) {
+    const ifaces = interfaces[name]
+    if (!ifaces) continue
+    for (const iface of ifaces) {
+      // Pular IPv6 e endereços locais
+      if (iface.family === 'IPv4' && !iface.internal) {
+        return iface.address
+      }
+    }
+  }
+  return 'localhost'
+}
+
+const localIP = getLocalIP()
 
 function figmaAssetResolver() {
   return {
@@ -34,4 +52,17 @@ export default defineConfig({
 
   // File types to support raw imports. Never add .css, .tsx, or .ts files to this.
   assetsInclude: ['**/*.svg', '**/*.csv'],
+
+  // Configuração para testar no celular pela rede local
+  server: {
+    host: true, // Aceita conexões de qualquer interface (0.0.0.0)
+    port: 5173,
+    strictPort: false, // Se a porta estiver em uso, tenta a próxima
+    middleware: true,
+    hmr: {
+      host: localIP,
+      protocol: 'ws',
+      port: 5173,
+    },
+  },
 })
