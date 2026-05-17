@@ -454,7 +454,7 @@ function BottomNav({
   if (!profileComplete) return null;
 
   return (
-    <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white border-t border-border/30 z-50 h-[70px] pb-[env(safe-area-inset-bottom)]">
+    <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white border-t border-border/30 z-50 h-[70px] pb-0">
       <div className="flex items-center justify-around h-full px-6">
         <button
           onClick={() => onNavigate("feed")}
@@ -1528,7 +1528,7 @@ function OnboardingScreen({
             className="w-full h-full object-cover"
           />
         </div>
-      <div className="flex-1 px-6 pt-10 pb-8 flex flex-col justify-between safe-area-left safe-area-right safe-area-bottom">
+      <div className="flex-1 px-6 pt-10 pb-8 flex flex-col justify-between safe-area-left safe-area-right">
           <div>
             <h2 className="font-extrabold text-[28px] font-display text-primary leading-tight mb-3">
               Bem-vindo ao BuscaPet
@@ -1566,7 +1566,7 @@ function OnboardingScreen({
           className="w-full h-full object-cover"
         />
       </div>
-      <div className="flex-1 px-6 pt-10 pb-8 flex flex-col justify-between safe-area-left safe-area-right safe-area-bottom">
+      <div className="flex-1 px-6 pt-10 pb-8 flex flex-col justify-between safe-area-left safe-area-right">
         <div>
           <h2 className="font-extrabold text-[28px] font-display text-primary leading-tight mb-3">
             Adote um pet
