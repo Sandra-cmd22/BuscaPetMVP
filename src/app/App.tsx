@@ -580,17 +580,17 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
             <div className="flex-1 h-px bg-[#5990DE]/50" />
           </div>
 
-          <div className="mt-6 flex justify-center gap-6 pb-8">
+          <div className="mt-6 flex justify-center gap-5 pb-8">
             <button
               type="button"
               onClick={handleGoogleLogin}
               disabled={googleLoading}
               aria-label="Entrar com Google"
-              className="w-[40px] h-[40px] rounded-full flex items-center justify-center hover:bg-gray-50 transition-colors disabled:opacity-50"
+              className="w-[52px] h-[52px] rounded-full bg-white border border-border/50 shadow-sm flex items-center justify-center hover:bg-gray-50 transition-colors disabled:opacity-50"
             >
               <svg
-                width="24"
-                height="24"
+                width="30"
+                height="30"
                 viewBox="0 0 40 40"
                 fill="none"
               >
@@ -612,10 +612,10 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
                 />
               </svg>
             </button>
-            <button className="w-[40px] h-[40px] rounded-full flex items-center justify-center hover:bg-gray-50 transition-colors">
+            <button className="w-[52px] h-[52px] rounded-full bg-white border border-border/50 shadow-sm flex items-center justify-center hover:bg-gray-50 transition-colors">
               <svg
-                width="24"
-                height="24"
+                width="30"
+                height="30"
                 viewBox="0 0 40 40"
                 fill="none"
               >
