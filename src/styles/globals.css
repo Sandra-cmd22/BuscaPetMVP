@@ -30,6 +30,7 @@ body {
   height: 100%;
   height: 100vh;
   height: 100dvh;
+  background-color: #00866f;
   -webkit-font-smoothing: antialiased;
   -webkit-touch-callout: none;
   -webkit-user-select: none;
@@ -47,6 +48,7 @@ body {
   height: 100%;
   height: 100vh;
   height: 100dvh;
+  background-color: #00866f;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -104,7 +106,6 @@ nav,
 .bottom-nav {
   padding-left: env(safe-area-inset-left);
   padding-right: env(safe-area-inset-right);
-  padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
 }
 
 /* ───────────────────────────────────────────────────────────────────────────── */

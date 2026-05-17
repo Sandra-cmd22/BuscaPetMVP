@@ -454,8 +454,8 @@ function BottomNav({
   if (!profileComplete) return null;
 
   return (
-    <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white border-t border-border/30 z-50 h-[70px] pb-0">
-      <div className="flex items-center justify-around h-full px-6">
+    <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white border-t border-border/30 z-50 pb-[env(safe-area-inset-bottom)]">
+      <div className="flex items-center justify-around h-[70px] px-6">
         <button
           onClick={() => onNavigate("feed")}
           className="flex flex-col items-center gap-1 p-2 w-[60px]"
@@ -1512,7 +1512,7 @@ function OnboardingScreen({
 
   if (step === 0) {
     return (
-      <div className="min-h-screen bg-primary flex items-center justify-center relative w-full overflow-hidden">
+      <div className="absolute inset-0 bg-primary flex items-center justify-center w-full overflow-hidden">
         <BuscaPetLogo className="w-[200px] h-[150px] text-white" />
       </div>
     );
@@ -2300,8 +2300,8 @@ export default function App() {
   }
 
   return (
-    <div className="w-full min-h-screen bg-background flex justify-center">
-      <div className="w-full max-w-md relative bg-background shadow-2xl min-h-screen overflow-x-hidden">
+    <div className="w-full min-h-[100dvh] bg-primary flex justify-center">
+      <div className="w-full max-w-md relative bg-background shadow-2xl min-h-[100dvh] overflow-x-hidden pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
         {screen === "onboarding" && (
           <OnboardingScreen
             onFinish={() => handleNavigate("login")}
