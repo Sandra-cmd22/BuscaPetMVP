@@ -478,7 +478,7 @@ function BottomNav({
 
         <button
           onClick={() => onNavigate("report")}
-          className="relative -top-5 flex flex-col items-center"
+          className="relative -top-3 flex flex-col items-center"
         >
           <div className="w-[56px] h-[56px] rounded-full bg-primary flex items-center justify-center shadow-lg border-4 border-white text-white hover:scale-105 transition-transform">
             <PlusCircle size={32} strokeWidth={2} />
