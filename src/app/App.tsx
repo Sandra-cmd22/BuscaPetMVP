@@ -361,24 +361,39 @@ function PetCard({
   pet: Pet;
   onDetail: (pet: Pet) => void;
 }) {
+  const trimLocationPart = (value: string, maxLength: number) =>
+    value.length > maxLength ? `${value.slice(0, maxLength).trimEnd()}…` : value;
+
+  const cityRaw = pet.city.trim();
+  const neighborhoodRaw = pet.neighborhood.trim();
+  const city = trimLocationPart(cityRaw, 14);
+  const neighborhood = trimLocationPart(neighborhoodRaw, 14);
+  const hasNeighborhood =
+    neighborhoodRaw.length > 0 &&
+    neighborhoodRaw.toLowerCase() !== cityRaw.toLowerCase();
+  const locationTitle = hasNeighborhood
+    ? `${cityRaw} · ${neighborhoodRaw}`
+    : cityRaw;
+
   return (
     <div
       onClick={() => onDetail(pet)}
-      className="bg-card rounded-[12px] shadow-sm relative overflow-hidden flex h-auto min-h-[140px] sm:min-h-[160px] border border-border/30 cursor-pointer active:scale-[0.98] transition-transform"
+      className="bg-[#f5f4f4] rounded-[10px] shadow-[0px_4px_4px_rgba(0,0,0,0.15)] relative overflow-hidden flex h-[160px] sm:h-[187px] cursor-pointer active:scale-[0.98] transition-transform"
     >
+      {/* Ribbons */}
       {pet.status === PET_STATUS.LOST && pet.reward && (
-        <div className="absolute -right-8 top-3 bg-destructive text-destructive-foreground text-[9px] sm:text-[10px] font-bold py-1 px-8 sm:px-10 rotate-45 z-10 shadow-sm uppercase tracking-wider">
+        <div className="absolute -right-8 top-5 bg-[#E53C51] text-white text-[10px] sm:text-[11px] font-bold py-1 w-[120px] rotate-45 z-10 text-center uppercase tracking-wider shadow-sm">
           Recompensa
         </div>
       )}
       {pet.status === PET_STATUS.FOUND && (
-        <div className="absolute -right-8 top-3 bg-muted-foreground text-white text-[9px] sm:text-[10px] font-bold py-1 px-8 sm:px-10 rotate-45 z-10 shadow-sm uppercase tracking-wider">
+        <div className="absolute -right-8 top-5 bg-[#757575] text-white text-[10px] sm:text-[11px] font-bold py-1 w-[120px] rotate-45 z-10 text-center uppercase tracking-wider shadow-sm">
           Encontrado
         </div>
       )}
 
-      {/* Image Container - Responsive width */}
-      <div className="w-[100px] sm:w-[120px] shrink-0 bg-muted">
+      {/* Image */}
+      <div className="w-[120px] sm:w-[131px] shrink-0 bg-[#a7beb7]">
         <img
           src={pet.photo}
           alt={pet.name}
@@ -387,49 +402,37 @@ function PetCard({
             img.onerror = null;
             img.src = pet.type === "gato" ? CAT_PLACEHOLDER : DOG_PLACEHOLDER;
           }}
-          className={`w-full h-full object-cover ${pet.status === PET_STATUS.FOUND ? "opacity-70 grayscale-[30%]" : ""}`}
+          className={`w-full h-full object-cover ${pet.status === PET_STATUS.FOUND ? "opacity-60" : ""}`}
         />
       </div>
 
-      {/* Content Container - Improved spacing */}
-      <div className="flex-1 p-2.5 sm:p-3 flex flex-col justify-between min-w-0">
-        <div className="min-w-0">
-          {/* Pet Name - Responsive typography */}
-          <h4 className="font-bold text-sm sm:text-base lg:text-lg mb-0.5 sm:mb-1 font-display uppercase tracking-tight text-foreground truncate">
-            {pet.name}
-          </h4>
+      {/* Content */}
+      <div className="flex-1 p-3 sm:p-4 flex flex-col relative z-0 min-w-0">
+        <h4 className="font-bold text-[16px] text-black mb-1 font-display uppercase truncate">
+          {pet.name}
+        </h4>
 
-          {/* Owner Name Badge - More compact */}
-          <div className="bg-primary/10 text-primary font-semibold text-[9px] sm:text-[10px] lg:text-[11px] py-1 px-2 sm:px-2.5 rounded-full inline-block mb-1 sm:mb-1.5 font-body truncate max-w-full">
+        <div className="self-start bg-[#00866f] rounded-[4px] px-1.5 py-[2px] mb-2 flex items-center max-w-full">
+          <span className="text-[10px] leading-none text-white font-body truncate max-w-full">
             {pet.ownerName}
-          </div>
-
-          {/* Description - Improved line clamping */}
-          <p className="text-[11px] sm:text-[12px] leading-snug line-clamp-2 text-muted-foreground font-body">
-            {pet.description}
-          </p>
+          </span>
         </div>
 
-        {/* Footer with Location and Action Button */}
-        <div className="flex justify-between items-end gap-2 mt-1.5 sm:mt-2 min-w-0">
-          {/* Location - Better sizing */}
-          <p className="text-[12px] sm:text-[13px] font-bold text-primary font-body flex items-center gap-0.5 shrink-0">
-            <MapPin size={11} className="sm:w-3 sm:h-3" /> 
-            <span className="truncate">{pet.distance}</span>
-          </p>
+        <p className="text-[10px] sm:text-[11px] leading-[1.4] text-black font-body mb-2 line-clamp-3">
+          {pet.description}
+        </p>
 
-          {/* Action Button - No wrapping */}
-          {pet.status === PET_STATUS.LOST && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onDetail(pet);
-              }}
-              className="bg-secondary text-secondary-foreground font-bold text-[11px] sm:text-[12px] font-display py-1 sm:py-1.5 px-2.5 sm:px-4 rounded-full shadow-sm hover:opacity-90 active:scale-95 transition-all whitespace-nowrap shrink-0 min-h-[32px] sm:min-h-[36px] flex items-center"
-            >
-              Você viu?
-            </button>
-          )}
+        <div className="mt-auto flex items-center gap-1 min-w-0">
+          <MapPin size={13} className="text-[#FF9D0B] shrink-0" />
+          <p className="text-[13px] font-bold font-display text-black truncate whitespace-nowrap min-w-0" title={locationTitle}>
+            <span className="text-[#FF9D0B]">{city}</span>
+            {hasNeighborhood && (
+              <>
+                <span className="mx-1 text-[#00866f]">•</span>
+                <span>{neighborhood}</span>
+              </>
+            )}
+          </p>
         </div>
       </div>
     </div>
@@ -901,23 +904,23 @@ function FeedScreen({
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Procurar por animal ou raça..."
-            className="w-full h-11 sm:h-[52px] bg-card border border-border/40 rounded-[10px] sm:rounded-[12px] pl-10 sm:pl-[44px] pr-3 sm:pr-4 text-[13px] sm:text-[14px] text-foreground outline-none font-body shadow-sm focus:border-primary transition-colors"
+            className="w-full h-12 bg-white rounded-lg border border-stone-300 pl-10 pr-3 text-[13px] sm:text-[14px] text-foreground outline-none font-body shadow-sm focus:border-primary transition-colors"
           />
         </div>
 
-        {/* Hero - Responsive height */}
-        <div className="relative h-[120px] sm:h-[160px] bg-primary rounded-[12px] sm:rounded-[16px] overflow-hidden mb-6 sm:mb-8 flex shadow-md">
-          <div className="flex-[1.3] p-3 sm:p-5 flex flex-col justify-center z-10 relative">
+        {/* Hero */}
+        <div className="relative h-[160px] bg-primary rounded-[16px] overflow-hidden mb-8 flex shadow-md">
+          <div className="flex-[1.3] p-5 flex flex-col justify-center z-10 relative">
             <div className="absolute inset-0 bg-gradient-to-r from-primary to-primary/40 z-0" />
             <div className="relative z-10">
-              <BuscaPetLogo className="w-16 sm:w-[85px] h-12 sm:h-[64px] text-white mb-2 sm:mb-3" />
-              <p className="text-[9px] sm:text-[11px] text-primary-foreground/90 font-body leading-snug w-[95%]">
+              <BuscaPetLogo className="w-[85px] h-[64px] text-white mb-3" />
+              <p className="text-[11px] text-primary-foreground/90 font-body leading-snug w-[95%]">
                 Ajude a reunir famílias e seus melhores amigos.
               </p>
             </div>
           </div>
           <div className="flex-[0.7] relative flex justify-end h-full items-end overflow-hidden">
-            <div className="absolute -right-8 -bottom-8 w-[120px] sm:w-[140px] h-[120px] sm:h-[140px] bg-white/10 rounded-full blur-xl" />
+            <div className="absolute -right-8 -bottom-8 w-[140px] h-[140px] bg-white/10 rounded-full blur-xl" />
             <img
               src="https://images.unsplash.com/photo-1583337130417-3346a1be7dee?w=300&h=300&fit=crop"
               className="relative z-10 w-full h-full object-cover scale-110 -translate-x-2 translate-y-2 opacity-90 mix-blend-luminosity"
