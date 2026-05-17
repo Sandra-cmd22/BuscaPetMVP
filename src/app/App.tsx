@@ -2302,7 +2302,7 @@ export default function App() {
   return (
     <div className="screen relative w-full min-h-[100vh] flex justify-center">
       <div className="background pointer-events-none absolute inset-0 bg-[#00866f]" />
-      <div className="content relative z-10 w-full max-w-md min-h-[100vh] overflow-x-hidden flex flex-col pt-[env(safe-area-inset-top)] pb-[calc(86px+env(safe-area-inset-bottom))]">
+      <div className="content relative z-10 w-full max-w-md flex-1 min-h-0 overflow-x-hidden flex flex-col pt-[env(safe-area-inset-top)]">
         {screen === "onboarding" && (
           <OnboardingScreen
             onFinish={() => handleNavigate("login")}
