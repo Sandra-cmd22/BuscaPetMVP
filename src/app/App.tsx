@@ -1026,7 +1026,7 @@ function DetailScreen({
   return (
     <div className="min-h-screen bg-background relative">
       {/* Header Image - Responsive height */}
-      <div className="relative h-[240px] sm:h-[300px] md:h-[340px] bg-muted w-full">
+      <div className="relative h-[240px] sm:h-[300px] md:h-[340px] bg-muted w-full -mt-[env(safe-area-inset-top)]">
         <img
           src={pet.photo}
           className="w-full h-full object-cover"
@@ -1035,7 +1035,7 @@ function DetailScreen({
         <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-transparent" />
         <button
           onClick={onBack}
-          className="absolute top-6 sm:top-8 md:top-10 left-3 sm:left-4 w-9 sm:w-10 h-9 sm:h-10 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white z-20 hover:bg-white/30 active:scale-90 transition-all"
+          className="absolute top-[calc(env(safe-area-inset-top)+1.5rem)] sm:top-[calc(env(safe-area-inset-top)+2rem)] md:top-[calc(env(safe-area-inset-top)+2.5rem)] left-3 sm:left-4 w-9 sm:w-10 h-9 sm:h-10 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white z-20 hover:bg-white/30 active:scale-90 transition-all"
         >
           <ChevronLeft size={20} strokeWidth={2.5} className="sm:w-6 sm:h-6" />
         </button>
@@ -1520,7 +1520,7 @@ function OnboardingScreen({
 
   if (step === 1) {
     return (
-      <div className="min-h-screen bg-white relative w-full overflow-hidden flex flex-col">
+      <div className="min-h-screen bg-white relative w-full overflow-hidden flex flex-col -mt-[env(safe-area-inset-top)] -mt-[env(safe-area-inset-top)]">
         <div className="h-[60vh] w-full relative bg-primary rounded-bl-[120px] overflow-hidden">
           <img
             src="https://images.unsplash.com/photo-1629740067905-bd3f515aa739?w=800&fit=crop"
@@ -1643,7 +1643,7 @@ function ProfileScreen({
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="px-6 pt-10 flex justify-between items-center mb-8 safe-area-left safe-area-right">
+      <div className="px-6 pt-6 flex justify-between items-center mb-6 safe-area-left safe-area-right">
         <div className="flex items-center gap-3">
           <button
             type="button"
@@ -1665,7 +1665,7 @@ function ProfileScreen({
         </button>
       </div>
 
-      <div className="flex flex-col items-center mt-4 mb-10">
+      <div className="flex flex-col items-center mt-2 mb-8">
         <div className="relative mb-4">
           <img
             src={user.avatar}
@@ -2012,7 +2012,7 @@ function MyPetsScreen({
 }) {
   return (
     <div className="min-h-screen bg-background">
-      <div className="px-6 pt-10 flex items-center gap-4 mb-8 safe-area-left safe-area-right">
+      <div className="px-6 pt-6 flex items-center gap-4 mb-6 safe-area-left safe-area-right">
         <button
           type="button"
           onClick={onBack}
