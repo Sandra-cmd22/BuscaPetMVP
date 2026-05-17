@@ -861,7 +861,7 @@ function FeedScreen({
   };
 
   return (
-    <div className="min-h-screen bg-background pb-0 safe-area-top">
+    <div className="min-h-screen bg-background pb-[calc(86px+env(safe-area-inset-bottom))] safe-area-top">
       <div className="px-3 sm:px-5 pt-6 sm:pt-8 safe-area-left safe-area-right">
         {/* Header - Responsive spacing */}
         <div className="flex justify-between items-center gap-2 sm:gap-3 mb-4 sm:mb-6">
@@ -1024,7 +1024,7 @@ function DetailScreen({
   const whatsappLink = canContact ? `https://wa.me/${normalizedPhone}` : "";
 
   return (
-    <div className="min-h-screen bg-background pb-0 relative safe-area-top">
+    <div className="min-h-screen bg-background pb-[calc(86px+env(safe-area-inset-bottom))] relative safe-area-top">
       {/* Header Image - Responsive height */}
       <div className="relative h-[240px] sm:h-[300px] md:h-[340px] bg-muted w-full">
         <img
@@ -1250,7 +1250,7 @@ function ReportScreen({
   };
 
   return (
-    <div className="min-h-screen bg-background pb-0 px-6 pt-8 safe-area-container">
+    <div className="min-h-screen bg-background pb-[calc(86px+env(safe-area-inset-bottom))] px-6 pt-8 safe-area-container">
       <div className="flex items-center gap-4 mb-8">
         <button
           onClick={onBack}
@@ -1642,7 +1642,7 @@ function ProfileScreen({
   };
 
   return (
-    <div className="min-h-screen bg-background pb-0 safe-area-top">
+    <div className="min-h-screen bg-background pb-[calc(86px+env(safe-area-inset-bottom))] safe-area-top">
       <div className="px-6 pt-10 flex justify-between items-center mb-8 safe-area-left safe-area-right">
         <div className="flex items-center gap-3">
           <button
@@ -2011,7 +2011,7 @@ function MyPetsScreen({
   busyPetId: string | null;
 }) {
   return (
-    <div className="min-h-screen bg-background pb-0 safe-area-top">
+    <div className="min-h-screen bg-background pb-[calc(86px+env(safe-area-inset-bottom))] safe-area-top">
       <div className="px-6 pt-10 flex items-center gap-4 mb-8 safe-area-left safe-area-right">
         <button
           type="button"
