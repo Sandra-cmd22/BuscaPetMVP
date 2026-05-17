@@ -28,15 +28,12 @@ body {
   padding: 0;
   width: 100%;
   height: 100%;
-  height: 100vh;
-  height: 100dvh;
   background: transparent;
   -webkit-font-smoothing: antialiased;
   -webkit-touch-callout: none;
   -webkit-user-select: none;
   user-select: none;
   overflow: hidden;
-  position: fixed;
 }
 
 body {
@@ -45,19 +42,11 @@ body {
 
 #root {
   width: 100%;
-  height: 100%;
-  height: 100vh;
-  height: 100dvh;
+  min-height: 100dvh;
   background-color: #00866f;
-  padding-top: env(safe-area-inset-top);
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
 }
 
 /* ───────────────────────────────────────────────────────────────────────────── */

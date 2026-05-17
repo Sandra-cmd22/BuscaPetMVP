@@ -454,7 +454,7 @@ function BottomNav({
   if (!profileComplete) return null;
 
   return (
-    <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white border-t border-border/30 z-50 pb-[env(safe-area-inset-bottom)]">
+    <nav className="absolute bottom-0 left-0 right-0 w-full bg-white border-t border-border/30 z-50 pb-[env(safe-area-inset-bottom)]">
       <div className="flex items-center justify-around h-[70px] px-6">
         <button
           onClick={() => onNavigate("feed")}
