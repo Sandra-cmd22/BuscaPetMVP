@@ -24,6 +24,8 @@ export function useProfile() {
   const syncUserFromAuth = useCallback(async (sessionUser: User) => {
     setProfileLoading(true);
     setAuthUser(sessionUser);
+    // Fill user immediately so protected navigation does not fall back while profile sync runs.
+    setUser(mapProfileToUserData(sessionUser, null));
 
     try {
       let existing: Profile | null = null;
@@ -128,7 +130,20 @@ export function useProfile() {
         const {
           data: { session },
         } = await supabase.auth.getSession();
-        await applySession(session);
+
+        if (session?.user) {
+          await applySession(session);
+        } else {
+          // Fallback for OAuth redirects where session persistence can settle moments later.
+          const {
+            data: { user: currentUser },
+          } = await supabase.auth.getUser();
+          if (currentUser) {
+            await syncUserFromAuth(currentUser);
+          } else {
+            await applySession(null);
+          }
+        }
       } catch (err) {
         console.error("[useProfile] init:", err);
       } finally {
