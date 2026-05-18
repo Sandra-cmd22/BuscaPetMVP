@@ -454,8 +454,8 @@ function BottomNav({
   if (!profileComplete) return null;
 
   return (
-    <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white border-t border-border/30 z-50 h-[70px] pb-[env(safe-area-inset-bottom)]">
-      <div className="flex items-center justify-around h-full px-6">
+    <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white border-t border-border/30 z-50 h-[calc(66px+env(safe-area-inset-bottom))] pb-[env(safe-area-inset-bottom)]">
+      <div className="flex items-center justify-around h-full px-6 pt-1">
         <button
           onClick={() => onNavigate("feed")}
           className="flex flex-col items-center gap-1 p-2 w-[60px]"
@@ -511,11 +511,36 @@ function BottomNav({
 
 // ─── Screens ──────────────────────────────────────────────────────────────────
 
-function LoginScreen({ onLogin }: { onLogin: () => void }) {
+function LoginScreen({
+  onLogin,
+  onRegister,
+}: {
+  onLogin: () => void;
+  onRegister: (payload: {
+    nome: string;
+    email: string;
+    cidade: string;
+    bairro: string;
+    telefone: string;
+    senha: string;
+  }) => Promise<void>;
+}) {
   const [view, setView] = useState<
     "choice" | "login" | "register"
   >("choice");
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [registerLoading, setRegisterLoading] = useState(false);
+  const [registerCooldown, setRegisterCooldown] = useState(0);
+  const [registerError, setRegisterError] = useState<string | null>(null);
+  const [registerForm, setRegisterForm] = useState({
+    nome: "",
+    email: "",
+    cidade: "",
+    bairro: "",
+    telefone: "",
+    senha: "",
+    confirmarSenha: "",
+  });
 
   const handleGoogleLogin = async () => {
     setGoogleLoading(true);
@@ -526,17 +551,92 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
     }
   };
 
+  const updateRegisterField = (
+    field: keyof typeof registerForm,
+    value: string,
+  ) => {
+    setRegisterForm((current) => ({ ...current, [field]: value }));
+  };
+
+  useEffect(() => {
+    if (registerCooldown <= 0) return;
+    const timer = setInterval(() => {
+      setRegisterCooldown((current) => (current > 0 ? current - 1 : 0));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [registerCooldown]);
+
+  const handleRegisterSubmit = async () => {
+    setRegisterError(null);
+
+    if (registerCooldown > 0) {
+      setRegisterError(
+        `Muitas tentativas. Aguarde ${registerCooldown}s para tentar novamente.`,
+      );
+      return;
+    }
+
+    const nome = registerForm.nome.trim();
+    const email = registerForm.email.trim();
+    const cidade = registerForm.cidade.trim();
+    const bairro = registerForm.bairro.trim();
+    const telefone = registerForm.telefone.trim();
+    const senha = registerForm.senha;
+    const confirmarSenha = registerForm.confirmarSenha;
+
+    if (!nome || !email || !cidade || !bairro || !telefone || !senha) {
+      setRegisterError("Preencha todos os campos para criar sua conta.");
+      return;
+    }
+
+    if (senha.length < 6) {
+      setRegisterError("A senha deve ter pelo menos 6 caracteres.");
+      return;
+    }
+
+    if (senha !== confirmarSenha) {
+      setRegisterError("As senhas não coincidem.");
+      return;
+    }
+
+    setRegisterLoading(true);
+    try {
+      await onRegister({
+        nome,
+        email,
+        cidade,
+        bairro,
+        telefone,
+        senha,
+      });
+    } catch (err) {
+      if (err instanceof Error && err.message === "RATE_LIMIT_SIGNUP") {
+        setRegisterCooldown(60);
+        setRegisterError("Muitas tentativas de cadastro. Aguarde 60 segundos.");
+        return;
+      }
+
+      setRegisterError(
+        err instanceof Error
+          ? err.message
+          : "Não foi possível criar sua conta.",
+      );
+    } finally {
+      setRegisterLoading(false);
+    }
+  };
+
   if (view === "login") {
     return (
-      <div className="min-h-screen bg-white relative w-full overflow-y-auto flex flex-col px-[18px] py-12 safe-area-container">
+      <div className="min-h-[100dvh] bg-white relative w-full overflow-y-auto flex flex-col px-[18px] pt-[env(safe-area-inset-top)] pb-[calc(env(safe-area-inset-bottom)+20px)]">
         <button
           onClick={() => setView("choice")}
-          className="absolute top-10 left-[18px]"
+          className="absolute top-[calc(env(safe-area-inset-top)+12px)] left-[18px]"
         >
           <BuscaPetLogo className="w-[45px] h-[34px] text-primary" />
         </button>
 
-        <div className="mt-16 flex-1 flex flex-col">
+        <div className="mt-[calc(env(safe-area-inset-top)+48px)] flex-1 flex flex-col">
           <h1 className="text-center font-extrabold text-[30px] font-display text-black mb-10">
             Login
           </h1>
@@ -648,15 +748,15 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
 
   if (view === "register") {
     return (
-      <div className="min-h-screen bg-white relative w-full overflow-y-auto flex flex-col px-[18px] py-12 safe-area-container">
+      <div className="min-h-[100dvh] bg-white relative w-full overflow-y-auto flex flex-col px-[18px] pt-[env(safe-area-inset-top)] pb-[calc(env(safe-area-inset-bottom)+20px)]">
         <button
           onClick={() => setView("choice")}
-          className="absolute top-10 left-[18px]"
+          className="absolute top-[calc(env(safe-area-inset-top)+12px)] left-[18px]"
         >
           <BuscaPetLogo className="w-[45px] h-[34px] text-primary" />
         </button>
 
-        <div className="mt-8 flex-1 flex flex-col">
+        <div className="mt-[calc(env(safe-area-inset-top)+48px)] flex-1 flex flex-col">
           <h1 className="text-center font-extrabold text-[30px] font-display text-black mb-8">
             Registro
           </h1>
@@ -668,6 +768,8 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
               </label>
               <input
                 type="text"
+                value={registerForm.nome}
+                onChange={(e) => updateRegisterField("nome", e.target.value)}
                 className="h-[48px] rounded-[8px] border border-[#a9a7a7] px-4 outline-none focus:border-primary transition-colors text-black"
               />
             </div>
@@ -677,6 +779,8 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
               </label>
               <input
                 type="email"
+                value={registerForm.email}
+                onChange={(e) => updateRegisterField("email", e.target.value)}
                 className="h-[48px] rounded-[8px] border border-[#a9a7a7] px-4 outline-none focus:border-primary transition-colors text-black"
               />
             </div>
@@ -686,6 +790,19 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
               </label>
               <input
                 type="text"
+                value={registerForm.cidade}
+                onChange={(e) => updateRegisterField("cidade", e.target.value)}
+                className="h-[48px] rounded-[8px] border border-[#a9a7a7] px-4 outline-none focus:border-primary transition-colors text-black"
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className="font-semibold text-[14px] font-display text-black">
+                Bairro
+              </label>
+              <input
+                type="text"
+                value={registerForm.bairro}
+                onChange={(e) => updateRegisterField("bairro", e.target.value)}
                 className="h-[48px] rounded-[8px] border border-[#a9a7a7] px-4 outline-none focus:border-primary transition-colors text-black"
               />
             </div>
@@ -695,6 +812,8 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
               </label>
               <input
                 type="tel"
+                value={registerForm.telefone}
+                onChange={(e) => updateRegisterField("telefone", e.target.value)}
                 className="h-[48px] rounded-[8px] border border-[#a9a7a7] px-4 outline-none focus:border-primary transition-colors text-black"
               />
             </div>
@@ -704,6 +823,8 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
               </label>
               <input
                 type="password"
+                value={registerForm.senha}
+                onChange={(e) => updateRegisterField("senha", e.target.value)}
                 className="h-[48px] rounded-[8px] border border-[#a9a7a7] px-4 outline-none focus:border-primary transition-colors text-black"
               />
             </div>
@@ -713,16 +834,29 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
               </label>
               <input
                 type="password"
+                value={registerForm.confirmarSenha}
+                onChange={(e) => updateRegisterField("confirmarSenha", e.target.value)}
                 className="h-[48px] rounded-[8px] border border-[#a9a7a7] px-4 outline-none focus:border-primary transition-colors text-black"
               />
             </div>
           </div>
 
+          {registerError && (
+            <p className="mt-4 text-[13px] text-destructive font-semibold font-body text-center">
+              {registerError}
+            </p>
+          )}
+
           <button
-            onClick={onLogin}
-            className="w-full h-[48px] bg-primary text-white rounded-[8px] font-bold text-[16px] font-display mt-8 hover:opacity-95 active:scale-[0.98] transition-all flex items-center justify-center"
+            onClick={handleRegisterSubmit}
+            disabled={registerLoading || registerCooldown > 0}
+            className="w-full h-[48px] bg-primary text-white rounded-[8px] font-bold text-[16px] font-display mt-8 hover:opacity-95 active:scale-[0.98] transition-all flex items-center justify-center disabled:opacity-60"
           >
-            Criar conta
+            {registerLoading
+              ? "Criando conta..."
+              : registerCooldown > 0
+                ? `Aguarde ${registerCooldown}s`
+                : "Criar conta"}
           </button>
 
           <div className="mt-6 flex justify-center gap-1 pb-8">
@@ -2286,6 +2420,73 @@ export default function App() {
     handleNavigate("login");
   };
 
+  const handleRegister = async (payload: {
+    nome: string;
+    email: string;
+    cidade: string;
+    bairro: string;
+    telefone: string;
+    senha: string;
+  }) => {
+    const tryCompleteProfile = async () => {
+      try {
+        await completeProfile({
+          telefone: payload.telefone,
+          cidade: payload.cidade,
+          bairro: payload.bairro,
+        });
+      } catch (error) {
+        // Do not block navigation if profile persistence fails momentarily.
+        console.warn("[register] Falha ao completar perfil:", error);
+      }
+    };
+
+    const { data, error } = await supabase.auth.signUp({
+      email: payload.email,
+      password: payload.senha,
+      options: {
+        data: {
+          full_name: payload.nome,
+          name: payload.nome,
+          cidade: payload.cidade,
+          bairro: payload.bairro,
+          telefone: payload.telefone,
+        },
+      },
+    });
+
+    if (error) {
+      const errorStatus = (error as { status?: number }).status;
+      const message = (error.message || "").toLowerCase();
+      if (
+        errorStatus === 429 ||
+        message.includes("too many requests") ||
+        message.includes("rate limit")
+      ) {
+        throw new Error("RATE_LIMIT_SIGNUP");
+      }
+      throw new Error(error.message);
+    }
+
+    if (!data.user) {
+      throw new Error("Não foi possível criar sua conta.");
+    }
+
+    const applyAuthAndGoFeed = async (sessionUser: { id: string } & any) => {
+      await syncUserFromAuth(sessionUser);
+      await tryCompleteProfile();
+      handleNavigate("feed");
+    };
+
+    if (data.session?.user) {
+      await applyAuthAndGoFeed(data.session.user);
+      return;
+    }
+
+    window.alert("Conta criada! Confirme seu email para entrar.");
+    handleNavigate("login");
+  };
+
   const showCompleteProfileModal =
     Boolean(user && !profileLoading && !profileComplete);
 
@@ -2318,6 +2519,7 @@ export default function App() {
                 handleNavigate("feed");
               }
             }}
+            onRegister={handleRegister}
           />
         )}
         {screen === "feed" && user && (
