@@ -36,6 +36,8 @@ import {
   PlusCircle,
   Heart,
   MessageCircle,
+  Eye,
+  X,
   PawPrint,
   CheckCircle2,
   Cat,
@@ -1153,6 +1155,7 @@ function DetailScreen({
   pet: Pet;
   onBack: () => void;
 }) {
+  const [isImageModalOpen, setIsImageModalOpen] = useState(false);
   const normalizedPhone = normalizeBrazilPhone(pet.ownerPhone);
   const canContact = normalizedPhone.length > 0;
   const whatsappLink = canContact ? `https://wa.me/${normalizedPhone}` : "";
@@ -1167,6 +1170,14 @@ function DetailScreen({
           alt={pet.name}
         />
         <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-transparent" />
+        <button
+          type="button"
+          onClick={() => setIsImageModalOpen(true)}
+          className="absolute bottom-3 right-2 sm:bottom-4 sm:right-3 bg-black/45 backdrop-blur-sm text-white rounded-full p-2.5 z-20 hover:bg-black/60 active:scale-95 transition-all"
+          aria-label="Ver imagem completa"
+        >
+          <Eye size={18} strokeWidth={2.2} />
+        </button>
         <button
           onClick={onBack}
           className="absolute top-6 sm:top-8 md:top-10 left-3 sm:left-4 w-9 sm:w-10 h-9 sm:h-10 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white z-20 hover:bg-white/30 active:scale-90 transition-all"
@@ -1283,6 +1294,31 @@ function DetailScreen({
           </button>
         </div>
       </div>
+
+      {isImageModalOpen && (
+        <div
+          className="fixed inset-0 z-[130] bg-black/90 flex items-center justify-center p-4"
+          onClick={() => setIsImageModalOpen(false)}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Imagem do pet em tela cheia"
+        >
+          <button
+            type="button"
+            onClick={() => setIsImageModalOpen(false)}
+            className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/20 text-white flex items-center justify-center hover:bg-white/30 active:scale-95 transition-transform"
+            aria-label="Fechar visualização"
+          >
+            <X size={20} strokeWidth={2.4} />
+          </button>
+          <img
+            src={pet.photo}
+            alt={pet.name}
+            className="max-w-full max-h-[90vh] object-contain rounded-[12px]"
+            onClick={(event) => event.stopPropagation()}
+          />
+        </div>
+      )}
     </div>
   );
 }
