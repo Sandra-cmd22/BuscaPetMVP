@@ -28,14 +28,14 @@ body {
   padding: 0;
   width: 100%;
   height: 100%;
-  min-height: 100%;
-  background: #ffffff;
+  height: 100vh;
+  height: 100dvh;
   -webkit-font-smoothing: antialiased;
   -webkit-touch-callout: none;
   -webkit-user-select: none;
   user-select: none;
   overflow: hidden;
-  overscroll-behavior: none;
+  position: fixed;
 }
 
 body {
@@ -45,25 +45,16 @@ body {
 #root {
   width: 100%;
   height: 100%;
-  min-height: 100dvh;
-  background: #ffffff;
+  height: 100vh;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  -webkit-overflow-scrolling: touch;
-}
-
-.screen {
-  min-height: 100dvh;
-  height: 100dvh;
-  overflow: hidden;
-}
-
-.content {
-  min-height: 0;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior-y: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
 }
 
 /* ───────────────────────────────────────────────────────────────────────────── */
@@ -94,12 +85,51 @@ body {
 }
 
 /* ───────────────────────────────────────────────────────────────────────────── */
-/* Keep safe-area behavior explicit                                                */
+/* Header - Avoid Status Bar                                                      */
 /* ───────────────────────────────────────────────────────────────────────────── */
 
-.scrollable {
+header,
+.header {
+  padding-top: max(1rem, env(safe-area-inset-top));
+  padding-left: max(1rem, env(safe-area-inset-left));
+  padding-right: max(1rem, env(safe-area-inset-right));
+}
+
+/* ───────────────────────────────────────────────────────────────────────────── */
+/* Bottom Navigation - Avoid Home Indicator                                        */
+/* ───────────────────────────────────────────────────────────────────────────── */
+
+nav,
+.nav,
+.bottom-nav {
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+  padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+}
+
+/* ───────────────────────────────────────────────────────────────────────────── */
+/* Scrollable Content - Safe Area Awareness                                       */
+/* ───────────────────────────────────────────────────────────────────────────── */
+
+.scrollable,
+.overflow-y-auto {
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
   -webkit-overflow-scrolling: touch;
   scroll-behavior: smooth;
+}
+
+/* ───────────────────────────────────────────────────────────────────────────── */
+/* Modal/Dialog - Fullscreen Safe Area                                            */
+/* ───────────────────────────────────────────────────────────────────────────── */
+
+.modal,
+.dialog,
+[role="dialog"] {
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
 }
 
 /* ───────────────────────────────────────────────────────────────────────────── */
@@ -107,6 +137,7 @@ body {
 /* ───────────────────────────────────────────────────────────────────────────── */
 
 .min-h-screen {
+  min-height: 100vh;
   min-height: 100dvh;
 }
 
@@ -132,7 +163,6 @@ body {
 /* Line clamping */
 .line-clamp-1 {
   display: -webkit-box;
-  line-clamp: 1;
   -webkit-line-clamp: 1;
   -webkit-box-orient: vertical;
   overflow: hidden;
@@ -140,7 +170,6 @@ body {
 
 .line-clamp-2 {
   display: -webkit-box;
-  line-clamp: 2;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
@@ -148,7 +177,6 @@ body {
 
 .line-clamp-3 {
   display: -webkit-box;
-  line-clamp: 3;
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
@@ -163,9 +191,19 @@ body {
   html,
   body,
   #root {
+    position: fixed;
     width: 100%;
-    min-height: 100%;
-    overflow-x: hidden;
+    height: 100%;
+    height: 100vh;
+    height: 100dvh;
+    overflow: hidden;
+  }
+
+  body {
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
   }
 
   /* Evitar zoom ao focar input - IMPORTANTE para mobile */
@@ -173,16 +211,12 @@ body {
   textarea,
   select {
     font-size: 16px;
-    appearance: none;
     -webkit-appearance: none;
-    border-radius: 0;
     -webkit-border-radius: 0;
   }
 
   /* Remover highlight padrão no click/tap */
-  * {
-    -webkit-tap-highlight-color: transparent;
-  }
+  -webkit-tap-highlight-color: transparent;
 
   /* Smooth scrolling em iOS */
   .scrollable {
@@ -207,6 +241,7 @@ body {
   html,
   body,
   #root {
+    height: 100vh;
     height: 100dvh;
   }
 }
@@ -215,7 +250,29 @@ body {
   html,
   body,
   #root {
+    height: 100vh;
     height: 100dvh;
+  }
+
+  /* Reduzir padding em landscape para aproveitar melhor o espaço */
+  header,
+  .header {
+    padding-top: max(0.5rem, env(safe-area-inset-top));
+  }
+}
+
+/* ───────────────────────────────────────────────────────────────────────────── */
+/* Notch Support (Dynamic Island)                                                 */
+/* ───────────────────────────────────────────────────────────────────────────── */
+
+@supports (padding: max(0px)) {
+  .notch-aware {
+    padding-top: max(1.5rem, env(safe-area-inset-top));
+  }
+
+  .content-with-notch {
+    padding-left: max(1rem, env(safe-area-inset-left));
+    padding-right: max(1rem, env(safe-area-inset-right));
   }
 }
 

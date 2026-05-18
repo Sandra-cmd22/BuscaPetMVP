@@ -47,6 +47,10 @@ export function useProfile() {
           );
         } else {
           existing = created;
+          const fetched = await getProfile(sessionUser.id);
+          if (!fetched.error) {
+            existing = fetched.data ?? existing;
+          }
         }
       }
 
@@ -130,7 +134,15 @@ export function useProfile() {
         if (session?.user) {
           await applySession(session);
         } else {
-          await applySession(null);
+          // Fallback for OAuth redirects where session persistence can settle moments later.
+          const {
+            data: { user: currentUser },
+          } = await supabase.auth.getUser();
+          if (currentUser) {
+            await syncUserFromAuth(currentUser);
+          } else {
+            await applySession(null);
+          }
         }
       } catch (err) {
         console.error("[useProfile] init:", err);

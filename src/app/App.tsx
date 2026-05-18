@@ -453,9 +453,9 @@ function BottomNav({
 
   if (!profileComplete) return null;
 
-        return (
-          <nav className="fixed bottom-[env(safe-area-inset-bottom)] left-1/2 -translate-x-1/2 w-full max-w-md bg-white border-t border-border/30 z-50">
-            <div className="flex items-center justify-around h-[70px] px-6">
+  return (
+    <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white border-t border-border/30 z-50 h-[70px] pb-[env(safe-area-inset-bottom)]">
+      <div className="flex items-center justify-around h-full px-6">
         <button
           onClick={() => onNavigate("feed")}
           className="flex flex-col items-center gap-1 p-2 w-[60px]"
@@ -478,7 +478,7 @@ function BottomNav({
 
         <button
           onClick={() => onNavigate("report")}
-          className="relative -top-3 flex flex-col items-center"
+          className="relative -top-5 flex flex-col items-center"
         >
           <div className="w-[56px] h-[56px] rounded-full bg-primary flex items-center justify-center shadow-lg border-4 border-white text-white hover:scale-105 transition-transform">
             <PlusCircle size={32} strokeWidth={2} />
@@ -861,7 +861,7 @@ function FeedScreen({
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pb-[100px] safe-area-top">
       <div className="px-3 sm:px-5 pt-6 sm:pt-8 safe-area-left safe-area-right">
         {/* Header - Responsive spacing */}
         <div className="flex justify-between items-center gap-2 sm:gap-3 mb-4 sm:mb-6">
@@ -1024,9 +1024,9 @@ function DetailScreen({
   const whatsappLink = canContact ? `https://wa.me/${normalizedPhone}` : "";
 
   return (
-    <div className="min-h-screen bg-background relative">
+    <div className="min-h-screen bg-background pb-[100px] relative safe-area-top">
       {/* Header Image - Responsive height */}
-      <div className="relative h-[240px] sm:h-[300px] md:h-[340px] bg-muted w-full -mt-[env(safe-area-inset-top)]">
+      <div className="relative h-[240px] sm:h-[300px] md:h-[340px] bg-muted w-full">
         <img
           src={pet.photo}
           className="w-full h-full object-cover"
@@ -1035,7 +1035,7 @@ function DetailScreen({
         <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-transparent" />
         <button
           onClick={onBack}
-          className="absolute top-[calc(env(safe-area-inset-top)+1.5rem)] sm:top-[calc(env(safe-area-inset-top)+2rem)] md:top-[calc(env(safe-area-inset-top)+2.5rem)] left-3 sm:left-4 w-9 sm:w-10 h-9 sm:h-10 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white z-20 hover:bg-white/30 active:scale-90 transition-all"
+          className="absolute top-6 sm:top-8 md:top-10 left-3 sm:left-4 w-9 sm:w-10 h-9 sm:h-10 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white z-20 hover:bg-white/30 active:scale-90 transition-all"
         >
           <ChevronLeft size={20} strokeWidth={2.5} className="sm:w-6 sm:h-6" />
         </button>
@@ -1250,7 +1250,7 @@ function ReportScreen({
   };
 
   return (
-    <div className="min-h-screen bg-background px-6 pt-8">
+    <div className="min-h-screen bg-background pb-[120px] px-6 pt-8 safe-area-container">
       <div className="flex items-center gap-4 mb-8">
         <button
           onClick={onBack}
@@ -1512,7 +1512,7 @@ function OnboardingScreen({
 
   if (step === 0) {
     return (
-      <div className="absolute inset-0 bg-primary flex items-center justify-center w-full overflow-hidden">
+      <div className="min-h-screen bg-primary flex items-center justify-center relative w-full overflow-hidden">
         <BuscaPetLogo className="w-[200px] h-[150px] text-white" />
       </div>
     );
@@ -1520,7 +1520,7 @@ function OnboardingScreen({
 
   if (step === 1) {
     return (
-      <div className="min-h-screen bg-white relative w-full overflow-hidden flex flex-col -mt-[env(safe-area-inset-top)] -mt-[env(safe-area-inset-top)]">
+      <div className="min-h-screen bg-white relative w-full overflow-hidden flex flex-col">
         <div className="h-[60vh] w-full relative bg-primary rounded-bl-[120px] overflow-hidden">
           <img
             src="https://images.unsplash.com/photo-1629740067905-bd3f515aa739?w=800&fit=crop"
@@ -1528,7 +1528,7 @@ function OnboardingScreen({
             className="w-full h-full object-cover"
           />
         </div>
-      <div className="flex-1 px-6 pt-10 pb-8 flex flex-col justify-between safe-area-left safe-area-right">
+      <div className="flex-1 px-6 pt-10 pb-8 flex flex-col justify-between safe-area-left safe-area-right safe-area-bottom">
           <div>
             <h2 className="font-extrabold text-[28px] font-display text-primary leading-tight mb-3">
               Bem-vindo ao BuscaPet
@@ -1566,7 +1566,7 @@ function OnboardingScreen({
           className="w-full h-full object-cover"
         />
       </div>
-      <div className="flex-1 px-6 pt-10 pb-8 flex flex-col justify-between safe-area-left safe-area-right">
+      <div className="flex-1 px-6 pt-10 pb-8 flex flex-col justify-between safe-area-left safe-area-right safe-area-bottom">
         <div>
           <h2 className="font-extrabold text-[28px] font-display text-primary leading-tight mb-3">
             Adote um pet
@@ -1642,8 +1642,8 @@ function ProfileScreen({
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="px-6 pt-6 flex justify-between items-center mb-6 safe-area-left safe-area-right">
+    <div className="min-h-screen bg-background pb-[100px] safe-area-top">
+      <div className="px-6 pt-10 flex justify-between items-center mb-8 safe-area-left safe-area-right">
         <div className="flex items-center gap-3">
           <button
             type="button"
@@ -1665,7 +1665,7 @@ function ProfileScreen({
         </button>
       </div>
 
-      <div className="flex flex-col items-center mt-2 mb-8">
+      <div className="flex flex-col items-center mt-4 mb-10">
         <div className="relative mb-4">
           <img
             src={user.avatar}
@@ -2011,8 +2011,8 @@ function MyPetsScreen({
   busyPetId: string | null;
 }) {
   return (
-    <div className="min-h-screen bg-background">
-      <div className="px-6 pt-6 flex items-center gap-4 mb-6 safe-area-left safe-area-right">
+    <div className="min-h-screen bg-background pb-[100px] safe-area-top">
+      <div className="px-6 pt-10 flex items-center gap-4 mb-8 safe-area-left safe-area-right">
         <button
           type="button"
           onClick={onBack}
@@ -2300,8 +2300,8 @@ export default function App() {
   }
 
   return (
-    <div className="screen relative w-full min-h-[100vh] bg-background flex justify-center">
-      <div className="content relative z-10 w-full max-w-md flex-1 min-h-0 overflow-x-hidden flex flex-col bg-background pt-[env(safe-area-inset-top)]">
+    <div className="w-full min-h-screen bg-background flex justify-center">
+      <div className="w-full max-w-md relative bg-background shadow-2xl min-h-screen overflow-x-hidden">
         {screen === "onboarding" && (
           <OnboardingScreen
             onFinish={() => handleNavigate("login")}
