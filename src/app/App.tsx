@@ -22,8 +22,6 @@ import {
 import { PET_STATUS, normalizePetStatus, type PetStatus } from "@/lib/petStatus";
 import { useProfile } from "@/hooks/useProfile";
 import { CompleteProfileModal } from "@/components/CompleteProfileModal";
-import LayoutGeral from "./components/LayoutGeral";
-import InternalScreenContainer from "./components/InternalScreenContainer";
 import {
   Search,
   MapPin,
@@ -455,9 +453,9 @@ function BottomNav({
 
   if (!profileComplete) return null;
 
-  return (
-    <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md h-[calc(70px+env(safe-area-inset-bottom))] bg-white border-t border-border/30 z-50 pb-0">
-      <div className="flex items-center justify-around h-[70px] px-6">
+        return (
+          <nav className="fixed bottom-[env(safe-area-inset-bottom)] left-1/2 -translate-x-1/2 w-full max-w-md bg-white border-t border-border/30 z-50">
+            <div className="flex items-center justify-around h-[70px] px-6">
         <button
           onClick={() => onNavigate("feed")}
           className="flex flex-col items-center gap-1 p-2 w-[60px]"
@@ -530,7 +528,7 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
 
   if (view === "login") {
     return (
-      <div className="h-[100dvh] bg-white relative w-full overflow-y-auto flex flex-col px-[18px] pt-0 pb-12">
+      <div className="min-h-screen bg-white relative w-full overflow-y-auto flex flex-col px-[18px] py-12 safe-area-container">
         <button
           onClick={() => setView("choice")}
           className="absolute top-10 left-[18px]"
@@ -650,7 +648,7 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
 
   if (view === "register") {
     return (
-      <div className="h-[100dvh] bg-white relative w-full overflow-y-auto flex flex-col px-[18px] pt-0 pb-12">
+      <div className="min-h-screen bg-white relative w-full overflow-y-auto flex flex-col px-[18px] py-12 safe-area-container">
         <button
           onClick={() => setView("choice")}
           className="absolute top-10 left-[18px]"
@@ -744,7 +742,7 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
   }
 
   return (
-    <div className="h-[100dvh] bg-white relative w-full overflow-hidden flex flex-col">
+    <div className="min-h-screen bg-white relative w-full overflow-hidden flex flex-col">
       <div className="h-[62vh] w-full bg-primary rounded-bl-[150px] relative flex flex-col items-center justify-center shrink-0">
         <BuscaPetLogo className="w-[180px] h-[135px] text-white" />
       </div>
@@ -864,7 +862,7 @@ function FeedScreen({
 
   return (
     <div className="min-h-screen bg-background">
-      <InternalScreenContainer className="pt-2 sm:pt-3">
+      <div className="px-3 sm:px-5 pt-6 sm:pt-8 safe-area-left safe-area-right">
         {/* Header - Responsive spacing */}
         <div className="flex justify-between items-center gap-2 sm:gap-3 mb-4 sm:mb-6">
           <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
@@ -1009,7 +1007,7 @@ function FeedScreen({
             </div>
           )}
         </div>
-      </InternalScreenContainer>
+      </div>
     </div>
   );
 }
@@ -1028,7 +1026,7 @@ function DetailScreen({
   return (
     <div className="min-h-screen bg-background relative">
       {/* Header Image - Responsive height */}
-      <div className="relative h-[calc(240px+env(safe-area-inset-top))] sm:h-[calc(300px+env(safe-area-inset-top))] md:h-[calc(340px+env(safe-area-inset-top))] bg-muted w-full -mt-[env(safe-area-inset-top)]">
+      <div className="relative h-[240px] sm:h-[300px] md:h-[340px] bg-muted w-full -mt-[env(safe-area-inset-top)]">
         <img
           src={pet.photo}
           className="w-full h-full object-cover"
@@ -1037,14 +1035,14 @@ function DetailScreen({
         <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-transparent" />
         <button
           onClick={onBack}
-          className="absolute top-[calc(env(safe-area-inset-top)+1rem)] sm:top-[calc(env(safe-area-inset-top)+1.25rem)] md:top-[calc(env(safe-area-inset-top)+1.5rem)] left-3 sm:left-4 w-9 sm:w-10 h-9 sm:h-10 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white z-20 hover:bg-white/30 active:scale-90 transition-all"
+          className="absolute top-[calc(env(safe-area-inset-top)+1.5rem)] sm:top-[calc(env(safe-area-inset-top)+2rem)] md:top-[calc(env(safe-area-inset-top)+2.5rem)] left-3 sm:left-4 w-9 sm:w-10 h-9 sm:h-10 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white z-20 hover:bg-white/30 active:scale-90 transition-all"
         >
           <ChevronLeft size={20} strokeWidth={2.5} className="sm:w-6 sm:h-6" />
         </button>
       </div>
 
       {/* Content Sheet - Responsive padding */}
-      <div className="bg-background rounded-t-[24px] sm:rounded-t-[32px] -mt-[30px] sm:-mt-[40px] relative z-10 pt-6 sm:pt-8 px-4 sm:px-6 shadow-[0_-8px_20px_rgba(0,0,0,0.08)] min-h-[500px]">
+      <div className="bg-background rounded-t-[24px] sm:rounded-t-[32px] -mt-[30px] sm:-mt-[40px] relative z-10 pt-6 sm:pt-8 px-4 sm:px-6 shadow-[0_-8px_20px_rgba(0,0,0,0.08)] min-h-[500px] safe-area-left safe-area-right">
         {/* Header section - Responsive typography */}
         <div className="flex justify-between items-start mb-4 sm:mb-6 gap-3">
           <div className="min-w-0 flex-1">
@@ -1252,8 +1250,7 @@ function ReportScreen({
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <InternalScreenContainer className="pt-8">
+    <div className="min-h-screen bg-background px-6 pt-8">
       <div className="flex items-center gap-4 mb-8">
         <button
           onClick={onBack}
@@ -1492,7 +1489,6 @@ function ReportScreen({
           "Publicar Alerta"
         )}
       </button>
-      </InternalScreenContainer>
     </div>
   );
 }
@@ -1516,7 +1512,7 @@ function OnboardingScreen({
 
   if (step === 0) {
     return (
-      <div className="relative w-full h-[100dvh] bg-primary flex items-center justify-center overflow-hidden">
+      <div className="absolute inset-0 bg-primary flex items-center justify-center w-full overflow-hidden">
         <BuscaPetLogo className="w-[200px] h-[150px] text-white" />
       </div>
     );
@@ -1524,16 +1520,16 @@ function OnboardingScreen({
 
   if (step === 1) {
     return (
-      <div className="relative w-full h-[100dvh] overflow-hidden bg-primary">
-        <img
-          src="https://images.unsplash.com/photo-1629740067905-bd3f515aa739?w=800&fit=crop"
-          alt="Puppy"
-          className="absolute inset-0 w-full h-full object-cover"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/25 via-black/10 to-transparent" />
-
-        <div className="relative z-10 h-full flex flex-col justify-end px-6 pt-[calc(env(safe-area-inset-top)+20px)] pb-[calc(env(safe-area-inset-bottom)+20px)]">
-          <div className="bg-white rounded-[24px] p-6 shadow-[0_12px_30px_rgba(0,0,0,0.18)]">
+      <div className="min-h-screen bg-white relative w-full overflow-hidden flex flex-col -mt-[env(safe-area-inset-top)] -mt-[env(safe-area-inset-top)]">
+        <div className="h-[60vh] w-full relative bg-primary rounded-bl-[120px] overflow-hidden">
+          <img
+            src="https://images.unsplash.com/photo-1629740067905-bd3f515aa739?w=800&fit=crop"
+            alt="Puppy"
+            className="w-full h-full object-cover"
+          />
+        </div>
+      <div className="flex-1 px-6 pt-10 pb-8 flex flex-col justify-between safe-area-left safe-area-right">
+          <div>
             <h2 className="font-extrabold text-[28px] font-display text-primary leading-tight mb-3">
               Bem-vindo ao BuscaPet
             </h2>
@@ -1541,43 +1537,7 @@ function OnboardingScreen({
               Um lugarzinho onde ajudamos você e outras pessoas
               a encontrar seu amiguinho
             </p>
-
-            <div className="flex flex-col items-center gap-6 mt-8">
-              <div className="flex gap-2">
-                <div className="w-2 h-2 rounded-full bg-primary" />
-                <div className="w-2 h-2 rounded-full bg-secondary" />
-                <div className="w-2 h-2 rounded-full bg-secondary" />
-              </div>
-              <button
-                onClick={() => setStep(2)}
-                className="w-full bg-primary text-primary-foreground font-bold text-[16px] font-display h-[56px] rounded-[14px] shadow-md active:scale-[0.98] transition-transform"
-              >
-                Próximo
-              </button>
-            </div>
           </div>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="relative w-full h-[100dvh] overflow-hidden bg-primary">
-      <img
-        src="https://images.unsplash.com/photo-1542583479-28899e4763ea?w=800&fit=crop"
-        alt="Woman hugging dog"
-        className="absolute inset-0 w-full h-full object-cover"
-      />
-      <div className="absolute inset-0 bg-gradient-to-t from-black/25 via-black/10 to-transparent" />
-
-      <div className="relative z-10 h-full flex flex-col justify-end px-6 pt-[calc(env(safe-area-inset-top)+20px)] pb-[calc(env(safe-area-inset-bottom)+20px)]">
-        <div className="bg-white rounded-[24px] p-6 shadow-[0_12px_30px_rgba(0,0,0,0.18)]">
-          <h2 className="font-extrabold text-[28px] font-display text-primary leading-tight mb-3">
-            Adote um pet
-          </h2>
-          <p className="font-body text-[16px] text-muted-foreground leading-relaxed">
-            Aqui também ajudamos a você adotar um amiguinho
-          </p>
 
           <div className="flex flex-col items-center gap-6 mt-8">
             <div className="flex gap-2">
@@ -1586,12 +1546,48 @@ function OnboardingScreen({
               <div className="w-2 h-2 rounded-full bg-secondary" />
             </div>
             <button
-              onClick={onFinish}
+              onClick={() => setStep(2)}
               className="w-full bg-primary text-primary-foreground font-bold text-[16px] font-display h-[56px] rounded-[14px] shadow-md active:scale-[0.98] transition-transform"
             >
-              Começar
+              Próximo
             </button>
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-white relative w-full overflow-hidden flex flex-col">
+      <div className="h-[60vh] w-full relative bg-primary rounded-bl-[120px] overflow-hidden">
+        <img
+          src="https://images.unsplash.com/photo-1542583479-28899e4763ea?w=800&fit=crop"
+          alt="Woman hugging dog"
+          className="w-full h-full object-cover"
+        />
+      </div>
+      <div className="flex-1 px-6 pt-10 pb-8 flex flex-col justify-between safe-area-left safe-area-right">
+        <div>
+          <h2 className="font-extrabold text-[28px] font-display text-primary leading-tight mb-3">
+            Adote um pet
+          </h2>
+          <p className="font-body text-[16px] text-muted-foreground leading-relaxed">
+            Aqui também ajudamos a você adotar um amiguinho
+          </p>
+        </div>
+
+        <div className="flex flex-col items-center gap-6 mt-8">
+          <div className="flex gap-2">
+            <div className="w-2 h-2 rounded-full bg-primary" />
+            <div className="w-2 h-2 rounded-full bg-secondary" />
+            <div className="w-2 h-2 rounded-full bg-secondary" />
+          </div>
+          <button
+            onClick={onFinish}
+            className="w-full bg-primary text-primary-foreground font-bold text-[16px] font-display h-[56px] rounded-[14px] shadow-md active:scale-[0.98] transition-transform"
+          >
+            Começar
+          </button>
         </div>
       </div>
     </div>
@@ -1647,56 +1643,55 @@ function ProfileScreen({
 
   return (
     <div className="min-h-screen bg-background">
-      <InternalScreenContainer>
-        <div className="pt-6 flex justify-between items-center mb-6">
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={onBack}
-              className="w-10 h-10 rounded-full bg-card border border-border/40 flex items-center justify-center text-foreground"
-            >
-              <ChevronLeft size={20} strokeWidth={2.2} />
-            </button>
-            <h1 className="font-extrabold text-[28px] font-display text-foreground">
-              Perfil
-            </h1>
-          </div>
+      <div className="px-6 pt-6 flex justify-between items-center mb-6 safe-area-left safe-area-right">
+        <div className="flex items-center gap-3">
           <button
             type="button"
-            onClick={onLogout}
-            className="w-10 h-10 bg-card border border-border/40 rounded-full flex items-center justify-center text-destructive"
+            onClick={onBack}
+            className="w-10 h-10 rounded-full bg-card border border-border/40 flex items-center justify-center text-foreground"
           >
-            <LogOut size={20} strokeWidth={2.5} />
+            <ChevronLeft size={20} strokeWidth={2.2} />
+          </button>
+          <h1 className="font-extrabold text-[28px] font-display text-foreground">
+            Perfil
+          </h1>
+        </div>
+        <button
+          type="button"
+          onClick={onLogout}
+          className="w-10 h-10 bg-card border border-border/40 rounded-full flex items-center justify-center text-destructive"
+        >
+          <LogOut size={20} strokeWidth={2.5} />
+        </button>
+      </div>
+
+      <div className="flex flex-col items-center mt-2 mb-8">
+        <div className="relative mb-4">
+          <img
+            src={user.avatar}
+            className="w-[120px] h-[120px] rounded-full object-cover border-4 border-card shadow-sm"
+            alt={user.name}
+          />
+          <button
+            type="button"
+            onClick={() => setIsEditing((current) => !current)}
+            className="absolute bottom-0 right-0 w-10 h-10 bg-primary rounded-full flex items-center justify-center text-white border-2 border-background shadow-md"
+          >
+            <Edit size={18} strokeWidth={2} />
           </button>
         </div>
+        <h2 className="font-extrabold text-[24px] font-display text-foreground">
+          {user.name}
+        </h2>
+        <p className="font-bold text-[14px] text-primary font-body break-all px-4 text-center">
+          {user.email}
+        </p>
+      </div>
 
-        <div className="flex flex-col items-center mt-2 mb-8">
-          <div className="relative mb-4">
-            <img
-              src={user.avatar}
-              className="w-[120px] h-[120px] rounded-full object-cover border-4 border-card shadow-sm"
-              alt={user.name}
-            />
-            <button
-              type="button"
-              onClick={() => setIsEditing((current) => !current)}
-              className="absolute bottom-0 right-0 w-10 h-10 bg-primary rounded-full flex items-center justify-center text-white border-2 border-background shadow-md"
-            >
-              <Edit size={18} strokeWidth={2} />
-            </button>
-          </div>
-          <h2 className="font-extrabold text-[24px] font-display text-foreground">
-            {user.name}
-          </h2>
-          <p className="font-bold text-[14px] text-primary font-body break-all px-4 text-center">
-            {user.email}
-          </p>
-        </div>
-
-        <div className="space-y-4">
-          <h3 className="font-extrabold text-[16px] font-display text-muted-foreground uppercase tracking-wider mb-2">
-            Dados Pessoais
-          </h3>
+      <div className="px-6 space-y-4 safe-area-left safe-area-right">
+        <h3 className="font-extrabold text-[16px] font-display text-muted-foreground uppercase tracking-wider mb-2">
+          Dados Pessoais
+        </h3>
 
         {isEditing && (
           <div className="bg-card border border-border/40 rounded-[16px] p-4 space-y-3">
@@ -1822,15 +1817,14 @@ function ProfileScreen({
           </div>
         </div>
 
-          <button
-            type="button"
-            onClick={onOpenMyPets}
-            className="w-full h-[52px] rounded-[14px] bg-primary text-primary-foreground font-bold font-display shadow-sm"
-          >
-            Meus Pets
-          </button>
-        </div>
-      </InternalScreenContainer>
+        <button
+          type="button"
+          onClick={onOpenMyPets}
+          className="w-full h-[52px] rounded-[14px] bg-primary text-primary-foreground font-bold font-display shadow-sm"
+        >
+          Meus Pets
+        </button>
+      </div>
     </div>
   );
 }
@@ -2018,26 +2012,25 @@ function MyPetsScreen({
 }) {
   return (
     <div className="min-h-screen bg-background">
-      <InternalScreenContainer>
-        <div className="pt-6 flex items-center gap-4 mb-6">
-          <button
-            type="button"
-            onClick={onBack}
-            className="w-10 h-10 rounded-full bg-card border border-border/40 flex items-center justify-center text-foreground"
-          >
-            <ChevronLeft size={20} strokeWidth={2.2} />
-          </button>
-          <div>
-            <h1 className="font-extrabold text-[28px] font-display text-foreground">
-              Meus Pets
-            </h1>
-            <p className="text-[13px] text-muted-foreground font-body">
-              Gerencie seus anúncios
-            </p>
-          </div>
+      <div className="px-6 pt-6 flex items-center gap-4 mb-6 safe-area-left safe-area-right">
+        <button
+          type="button"
+          onClick={onBack}
+          className="w-10 h-10 rounded-full bg-card border border-border/40 flex items-center justify-center text-foreground"
+        >
+          <ChevronLeft size={20} strokeWidth={2.2} />
+        </button>
+        <div>
+          <h1 className="font-extrabold text-[28px] font-display text-foreground">
+            Meus Pets
+          </h1>
+          <p className="text-[13px] text-muted-foreground font-body">
+            Gerencie seus anúncios
+          </p>
         </div>
+      </div>
 
-        <div className="space-y-4">
+      <div className="px-6 space-y-4 safe-area-left safe-area-right">
         {loading ? (
           <div className="flex justify-center py-16">
             <div className="w-10 h-10 rounded-full border-2 border-primary border-t-transparent animate-spin" />
@@ -2122,8 +2115,7 @@ function MyPetsScreen({
             </div>
           ))
         )}
-        </div>
-      </InternalScreenContainer>
+      </div>
     </div>
   );
 }
@@ -2296,8 +2288,6 @@ export default function App() {
 
   const showCompleteProfileModal =
     Boolean(user && !profileLoading && !profileComplete);
-  const hasBottomNav =
-    profileComplete && screen !== "login" && screen !== "onboarding";
 
   if (!authReady) {
     return (
@@ -2310,10 +2300,8 @@ export default function App() {
   }
 
   return (
-    <div className="screen relative w-full min-h-[100dvh] flex justify-center">
-      <div
-        className={`content relative z-10 w-full max-w-md flex-1 min-h-0 overflow-x-hidden flex flex-col ${hasBottomNav ? "pb-[calc(70px+env(safe-area-inset-bottom))]" : "pb-0"}`}
-      >
+    <div className="screen relative w-full min-h-[100vh] bg-background flex justify-center">
+      <div className="content relative z-10 w-full max-w-md flex-1 min-h-0 overflow-x-hidden flex flex-col bg-background pt-[env(safe-area-inset-top)]">
         {screen === "onboarding" && (
           <OnboardingScreen
             onFinish={() => handleNavigate("login")}
@@ -2333,16 +2321,14 @@ export default function App() {
           />
         )}
         {screen === "feed" && user && (
-          <LayoutGeral>
-            <FeedScreen
-              pets={displayPets}
-              petsLoading={petsLoading}
-              onDetail={handleDetail}
-              onOpenProfile={() => handleNavigate("profile")}
-              onEditLocation={() => handleNavigate("profile")}
-              user={user}
-            />
-          </LayoutGeral>
+          <FeedScreen
+            pets={displayPets}
+            petsLoading={petsLoading}
+            onDetail={handleDetail}
+            onOpenProfile={() => handleNavigate("profile")}
+            onEditLocation={() => handleNavigate("profile")}
+            user={user}
+          />
         )}
         {screen === "detail" && selectedPet && profileComplete && (
           <DetailScreen
@@ -2351,42 +2337,36 @@ export default function App() {
           />
         )}
         {screen === "profile" && user && profileComplete && (
-          <LayoutGeral>
-            <ProfileScreen
-              user={user}
-              onBack={() => handleNavigate("feed")}
-              onOpenMyPets={() => handleNavigate("my-pets")}
-              onSaveProfile={completeProfile}
-              onLogout={handleLogout}
-            />
-          </LayoutGeral>
+          <ProfileScreen
+            user={user}
+            onBack={() => handleNavigate("feed")}
+            onOpenMyPets={() => handleNavigate("my-pets")}
+            onSaveProfile={completeProfile}
+            onLogout={handleLogout}
+          />
         )}
         {screen === "my-pets" && user && profileComplete && (
-          <LayoutGeral>
-            <MyPetsScreen
-              pets={displayMyPets}
-              loading={myPetsLoading}
-              error={myPetsError}
-              onBack={() => handleNavigate("profile")}
-              onEdit={handleEditPet}
-              onDelete={handleDeletePet}
-              onMarkFound={handleMarkFound}
-              busyPetId={petActionLoadingId}
-            />
-          </LayoutGeral>
+          <MyPetsScreen
+            pets={displayMyPets}
+            loading={myPetsLoading}
+            error={myPetsError}
+            onBack={() => handleNavigate("profile")}
+            onEdit={handleEditPet}
+            onDelete={handleDeletePet}
+            onMarkFound={handleMarkFound}
+            busyPetId={petActionLoadingId}
+          />
         )}
         {screen === "report" && user && profileComplete && authUser && (
-          <LayoutGeral>
-            <ReportScreen
-              onSuccess={async () => {
-                await refetchPets();
-                handleNavigate("feed");
-              }}
-              onBack={() => handleNavigate("feed")}
-              user={user}
-              authUserId={authUser.id}
-            />
-          </LayoutGeral>
+          <ReportScreen
+            onSuccess={async () => {
+              await refetchPets();
+              handleNavigate("feed");
+            }}
+            onBack={() => handleNavigate("feed")}
+            user={user}
+            authUserId={authUser.id}
+          />
         )}
 
         <CompleteProfileModal
