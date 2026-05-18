@@ -454,7 +454,7 @@ function BottomNav({
   if (!profileComplete) return null;
 
   return (
-    <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white border-t border-border/30 z-50 h-[calc(66px+env(safe-area-inset-bottom))] pb-[env(safe-area-inset-bottom)]">
+    <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white border-t border-border/30 z-50 h-[calc(58px+env(safe-area-inset-bottom))] pb-[env(safe-area-inset-bottom)]">
       <div className="flex items-center justify-around h-full px-6 pt-1">
         <button
           onClick={() => onNavigate("feed")}
@@ -995,7 +995,7 @@ function FeedScreen({
   };
 
   return (
-    <div className="min-h-screen bg-background pb-[100px] safe-area-top">
+    <div className="flex flex-col min-h-[100dvh] bg-white pt-[env(safe-area-inset-top)] pb-[calc(60px+env(safe-area-inset-bottom)+16px)]">
       <div className="px-3 sm:px-5 pt-6 sm:pt-8 safe-area-left safe-area-right">
         {/* Header - Responsive spacing */}
         <div className="flex justify-between items-center gap-2 sm:gap-3 mb-4 sm:mb-6">
