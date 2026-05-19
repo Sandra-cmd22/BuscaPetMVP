@@ -1,8 +1,15 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { signInWithGoogle } from "@/lib/auth";
+import {
+  calculateDistance,
+  formatDistance,
+  type Coordinates,
+} from "@/lib/distance";
+import { geocodeAddress } from "@/lib/geocoding";
+import { formatRelativeTime } from "@/lib/time";
 import {
   createPet,
   deletePet,
@@ -66,13 +73,64 @@ interface Pet {
   neighborhood: string;
   city: string;
   distance: string;
+  distanceMeters: number | null;
+  distanceLabel: string | null;
+  lastSeenCity: string | null;
+  lastSeenNeighborhood: string | null;
+  lastSeenAt: string | null;
+  latitude: number | null;
+  longitude: number | null;
   status: PetStatus;
   photo: string;
   ownerName: string;
   ownerPhone: string;
   postedAt: string;
+  updatedAt: string | null;
   userId: string;
   reward?: boolean;
+}
+
+function normalizeCoordinate(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+
+  if (typeof value === "string" && value.trim().length > 0) {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+
+  return null;
+}
+
+function resolvePetCoordinates(dbPet: DbPet): Coordinates | null {
+  const dynamicPet = dbPet as unknown as Record<string, unknown>;
+
+  const latitude =
+    normalizeCoordinate(dynamicPet.latitude) ??
+    normalizeCoordinate(dynamicPet.lat);
+  const longitude =
+    normalizeCoordinate(dynamicPet.longitude) ??
+    normalizeCoordinate(dynamicPet.lng);
+
+  if (latitude === null || longitude === null) {
+    return null;
+  }
+
+  return { latitude, longitude };
+}
+
+function buildDistanceLabel(distanceMeters: number | null): string | null {
+  if (distanceMeters === null) {
+    return null;
+  }
+
+  if (distanceMeters < 100) {
+    return "Muito perto de você";
+  }
+
+  const distanceText = formatDistance(distanceMeters);
+  return `${distanceText} de você`;
 }
 
 // ─── DB → Display mapper ──────────────────────────────────────────────────────
@@ -107,7 +165,10 @@ function resolvePetPhotoUrl(dbPet: DbPet): string {
   return data.publicUrl;
 }
 
-function mapDbPetToDisplay(dbPet: DbPet): Pet {
+function mapDbPetToDisplay(
+  dbPet: DbPet,
+  userCoordinates: Coordinates | null,
+): Pet {
   const ownerName =
     dbPet.owner_name?.trim() ||
     dbPet.contato_nome?.trim() ||
@@ -116,6 +177,16 @@ function mapDbPetToDisplay(dbPet: DbPet): Pet {
     dbPet.owner_phone?.trim() ||
     dbPet.contato_telefone?.trim() ||
     "";
+  const petCoordinates = resolvePetCoordinates(dbPet);
+  const distanceMeters =
+    petCoordinates && userCoordinates
+      ? calculateDistance(userCoordinates, petCoordinates)
+      : null;
+  const distanceLabel = buildDistanceLabel(distanceMeters);
+  const lastSeenCity = dbPet.last_seen_city?.trim() || null;
+  const lastSeenNeighborhood =
+    dbPet.last_seen_neighborhood?.trim() || dbPet.last_seen?.trim() || null;
+  const lastSeenAt = dbPet.last_seen_at ?? null;
 
   return {
     id: dbPet.id,
@@ -128,11 +199,19 @@ function mapDbPetToDisplay(dbPet: DbPet): Pet {
     neighborhood: dbPet.bairro,
     city: dbPet.cidade,
     distance: dbPet.cidade,
+    distanceMeters,
+    distanceLabel,
+    lastSeenCity,
+    lastSeenNeighborhood,
+    lastSeenAt,
+    latitude: petCoordinates?.latitude ?? null,
+    longitude: petCoordinates?.longitude ?? null,
     status: normalizePetStatus(dbPet.status),
     photo: resolvePetPhotoUrl(dbPet),
     ownerName,
     ownerPhone,
     postedAt: dbPet.created_at,
+    updatedAt: dbPet.updated_at ?? null,
     userId: dbPet.user_id,
     reward: dbPet.recompensa,
   };
@@ -144,6 +223,61 @@ function normalizeBrazilPhone(input: string): string {
   if (digits.startsWith("55") && digits.length >= 12) return digits;
   if (digits.length >= 10) return `55${digits}`;
   return "";
+}
+
+async function reverseGeocode(coords: Coordinates): Promise<{
+  city: string | null;
+  neighborhood: string | null;
+}> {
+  const url = new URL("https://nominatim.openstreetmap.org/reverse");
+  url.searchParams.set("format", "jsonv2");
+  url.searchParams.set("lat", String(coords.latitude));
+  url.searchParams.set("lon", String(coords.longitude));
+
+  const response = await fetch(url.toString(), {
+    headers: {
+      "Accept-Language": "pt-BR,pt;q=0.9",
+    },
+  });
+
+  if (!response.ok) {
+    return { city: null, neighborhood: null };
+  }
+
+  const payload = (await response.json()) as {
+    address?: Record<string, string | undefined>;
+  };
+  const address = payload.address ?? {};
+
+  const city =
+    address.city ??
+    address.town ??
+    address.village ??
+    address.municipality ??
+    address.county ??
+    null;
+
+  const neighborhood =
+    address.suburb ??
+    address.neighbourhood ??
+    address.neighborhood ??
+    address.city_district ??
+    null;
+
+  return { city, neighborhood };
+}
+
+function isValidEmail(email: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+function isRateLimitError(error: { status?: number; message?: string }): boolean {
+  const message = (error.message || "").toLowerCase();
+  return (
+    error.status === 429 ||
+    message.includes("too many requests") ||
+    message.includes("rate limit")
+  );
 }
 
 // ─── Shared Components ────────────────────────────────────────────────────────
@@ -363,19 +497,29 @@ function PetCard({
   pet: Pet;
   onDetail: (pet: Pet) => void;
 }) {
-  const trimLocationPart = (value: string, maxLength: number) =>
-    value.length > maxLength ? `${value.slice(0, maxLength).trimEnd()}…` : value;
+  const activityLabel = useMemo(() => {
+    const baseDate = pet.updatedAt ?? pet.postedAt;
+    const relative = formatRelativeTime(baseDate);
+    if (!relative) return "";
 
-  const cityRaw = pet.city.trim();
-  const neighborhoodRaw = pet.neighborhood.trim();
-  const city = trimLocationPart(cityRaw, 14);
-  const neighborhood = trimLocationPart(neighborhoodRaw, 14);
-  const hasNeighborhood =
-    neighborhoodRaw.length > 0 &&
-    neighborhoodRaw.toLowerCase() !== cityRaw.toLowerCase();
-  const locationTitle = hasNeighborhood
-    ? `${cityRaw} · ${neighborhoodRaw}`
-    : cityRaw;
+    if (relative === "ontem") {
+      return "Publicado ontem";
+    }
+
+    if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(relative)) {
+      return `Publicado em ${relative}`;
+    }
+
+    if (relative === "Agora") {
+      return "Publicado agora";
+    }
+
+    return `Publicado há ${relative}`;
+  }, [pet.postedAt, pet.updatedAt]);
+
+  const statusLabel = pet.status === PET_STATUS.LOST ? "PERDIDO" : "ENCONTRADO";
+  const statusColor = pet.status === PET_STATUS.LOST ? "text-[#0D8A43]" : "text-[#6B7280]";
+  const locationLabel = [pet.neighborhood, pet.city].filter(Boolean).join(", ");
 
   return (
     <div
@@ -410,32 +554,21 @@ function PetCard({
 
       {/* Content */}
       <div className="flex-1 p-3 sm:p-4 flex flex-col relative z-0 min-w-0">
-        <h4 className="font-bold text-[16px] text-black mb-1 font-display uppercase truncate">
+        <h4 className="font-extrabold text-[20px] sm:text-[22px] text-black mb-1 font-['Poppins',sans-serif] uppercase truncate leading-tight">
           {pet.name}
         </h4>
 
-        <div className="self-start bg-[#00866f] rounded-[4px] px-1.5 py-[2px] mb-2 flex items-center max-w-full">
-          <span className="text-[10px] leading-none text-white font-body truncate max-w-full">
-            {pet.ownerName}
-          </span>
-        </div>
+        <p className={`text-[12px] leading-[1.2] font-medium font-['Poppins',sans-serif] mb-1 truncate ${statusColor}`}>
+          {statusLabel} • {pet.distanceLabel ?? "Distância indisponível"}
+        </p>
 
-        <p className="text-[10px] sm:text-[11px] leading-[1.4] text-black font-body mb-2 line-clamp-3">
+        <p className="text-[12px] leading-[1.35] text-black font-normal font-['Poppins',sans-serif] mb-1 line-clamp-2">
           {pet.description}
         </p>
 
-        <div className="mt-auto flex items-center gap-1 min-w-0">
-          <MapPin size={13} className="text-[#FF9D0B] shrink-0" />
-          <p className="text-[13px] font-bold font-display text-black truncate whitespace-nowrap min-w-0" title={locationTitle}>
-            <span className="text-[#FF9D0B]">{city}</span>
-            {hasNeighborhood && (
-              <>
-                <span className="mx-1 text-[#00866f]">•</span>
-                <span>{neighborhood}</span>
-              </>
-            )}
-          </p>
-        </div>
+        <p className="mt-auto text-[12px] leading-[1.2] text-black font-medium font-['Roboto',sans-serif] truncate">
+          📍 {locationLabel}{activityLabel ? ` • ${activityLabel}` : ""}
+        </p>
       </div>
     </div>
   );
@@ -482,7 +615,7 @@ function BottomNav({
           onClick={() => onNavigate("report")}
           className="relative -top-5 flex flex-col items-center"
         >
-          <div className="w-[56px] h-[56px] rounded-full bg-primary flex items-center justify-center shadow-lg border-4 border-white text-white hover:scale-105 transition-transform">
+          <div className="w-[56px] h-[56px] rounded-full bg-[#FF9D0B] flex items-center justify-center shadow-lg border-4 border-white text-white hover:scale-105 transition-transform">
             <PlusCircle size={32} strokeWidth={2} />
           </div>
         </button>
@@ -516,8 +649,12 @@ function BottomNav({
 function LoginScreen({
   onLogin,
   onRegister,
+  onRequestPasswordReset,
+  onUpdatePassword,
+  forceResetPassword,
+  onExitPasswordRecovery,
 }: {
-  onLogin: () => void;
+  onLogin: (payload: { email: string; senha: string }) => Promise<void>;
   onRegister: (payload: {
     nome: string;
     email: string;
@@ -526,11 +663,19 @@ function LoginScreen({
     telefone: string;
     senha: string;
   }) => Promise<void>;
+  onRequestPasswordReset: (email: string) => Promise<void>;
+  onUpdatePassword: (password: string) => Promise<void>;
+  forceResetPassword: boolean;
+  onExitPasswordRecovery: () => void;
 }) {
   const [view, setView] = useState<
-    "choice" | "login" | "register"
+    "choice" | "login" | "register" | "forgot" | "reset"
   >("choice");
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [loginLoading, setLoginLoading] = useState(false);
+  const [loginCooldown, setLoginCooldown] = useState(0);
+  const [loginError, setLoginError] = useState<string | null>(null);
+  const [loginForm, setLoginForm] = useState({ email: "", senha: "" });
   const [registerLoading, setRegisterLoading] = useState(false);
   const [registerCooldown, setRegisterCooldown] = useState(0);
   const [registerError, setRegisterError] = useState<string | null>(null);
@@ -543,6 +688,26 @@ function LoginScreen({
     senha: "",
     confirmarSenha: "",
   });
+  const [forgotLoading, setForgotLoading] = useState(false);
+  const [forgotError, setForgotError] = useState<string | null>(null);
+  const [forgotSuccess, setForgotSuccess] = useState<string | null>(null);
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [resetLoading, setResetLoading] = useState(false);
+  const [resetError, setResetError] = useState<string | null>(null);
+  const [resetSuccess, setResetSuccess] = useState<string | null>(null);
+  const [resetForm, setResetForm] = useState({
+    senha: "",
+    confirmarSenha: "",
+  });
+
+  useEffect(() => {
+    if (forceResetPassword) {
+      setView("reset");
+      return;
+    }
+
+    setView((current) => (current === "reset" ? "login" : current));
+  }, [forceResetPassword]);
 
   const handleGoogleLogin = async () => {
     setGoogleLoading(true);
@@ -560,6 +725,13 @@ function LoginScreen({
     setRegisterForm((current) => ({ ...current, [field]: value }));
   };
 
+  const updateLoginField = (
+    field: keyof typeof loginForm,
+    value: string,
+  ) => {
+    setLoginForm((current) => ({ ...current, [field]: value }));
+  };
+
   useEffect(() => {
     if (registerCooldown <= 0) return;
     const timer = setInterval(() => {
@@ -567,6 +739,60 @@ function LoginScreen({
     }, 1000);
     return () => clearInterval(timer);
   }, [registerCooldown]);
+
+  useEffect(() => {
+    if (loginCooldown <= 0) return;
+    const timer = setInterval(() => {
+      setLoginCooldown((current) => (current > 0 ? current - 1 : 0));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [loginCooldown]);
+
+  const handleLoginSubmit = async () => {
+    setLoginError(null);
+
+    if (loginCooldown > 0) {
+      setLoginError(
+        `Muitas tentativas. Aguarde ${loginCooldown}s para tentar novamente.`,
+      );
+      return;
+    }
+
+    const email = loginForm.email.trim();
+    const senha = loginForm.senha;
+
+    if (!email) {
+      setLoginError("Informe seu email.");
+      return;
+    }
+
+    if (!isValidEmail(email)) {
+      setLoginError("Informe um email valido.");
+      return;
+    }
+
+    if (!senha) {
+      setLoginError("Informe sua senha.");
+      return;
+    }
+
+    setLoginLoading(true);
+    try {
+      await onLogin({ email, senha });
+    } catch (err) {
+      if (err instanceof Error && err.message === "RATE_LIMIT_LOGIN") {
+        setLoginCooldown(60);
+        setLoginError("Muitas tentativas de login. Aguarde 60 segundos.");
+        return;
+      }
+
+      setLoginError(
+        err instanceof Error ? err.message : "Nao foi possivel entrar.",
+      );
+    } finally {
+      setLoginLoading(false);
+    }
+  };
 
   const handleRegisterSubmit = async () => {
     setRegisterError(null);
@@ -588,6 +814,11 @@ function LoginScreen({
 
     if (!nome || !email || !cidade || !bairro || !telefone || !senha) {
       setRegisterError("Preencha todos os campos para criar sua conta.");
+      return;
+    }
+
+    if (!isValidEmail(email)) {
+      setRegisterError("Informe um email valido.");
       return;
     }
 
@@ -628,6 +859,219 @@ function LoginScreen({
     }
   };
 
+  const handleForgotPasswordSubmit = async () => {
+    setForgotError(null);
+    setForgotSuccess(null);
+
+    const email = forgotEmail.trim();
+    if (!email) {
+      setForgotError("Informe seu email para recuperar a senha.");
+      return;
+    }
+
+    if (!isValidEmail(email)) {
+      setForgotError("Informe um email valido.");
+      return;
+    }
+
+    setForgotLoading(true);
+    try {
+      await onRequestPasswordReset(email);
+      setForgotSuccess("Enviamos um link de recuperacao para seu email.");
+    } catch (err) {
+      setForgotError(
+        err instanceof Error
+          ? err.message
+          : "Nao foi possivel enviar o email de recuperacao.",
+      );
+    } finally {
+      setForgotLoading(false);
+    }
+  };
+
+  const handleResetPasswordSubmit = async () => {
+    setResetError(null);
+    setResetSuccess(null);
+
+    const senha = resetForm.senha;
+    const confirmarSenha = resetForm.confirmarSenha;
+
+    if (!senha) {
+      setResetError("Informe a nova senha.");
+      return;
+    }
+
+    if (senha.length < 6) {
+      setResetError("A senha deve ter pelo menos 6 caracteres.");
+      return;
+    }
+
+    if (senha !== confirmarSenha) {
+      setResetError("As senhas nao coincidem.");
+      return;
+    }
+
+    setResetLoading(true);
+    try {
+      await onUpdatePassword(senha);
+      setResetSuccess("Senha atualizada com sucesso.");
+    } catch (err) {
+      setResetError(
+        err instanceof Error
+          ? err.message
+          : "Nao foi possivel atualizar a senha.",
+      );
+    } finally {
+      setResetLoading(false);
+    }
+  };
+
+  if (view === "forgot") {
+    return (
+      <div className="min-h-[100dvh] bg-white relative w-full overflow-y-auto flex flex-col px-[18px] pt-[env(safe-area-inset-top)] pb-[calc(env(safe-area-inset-bottom)+20px)]">
+        <button
+          onClick={() => {
+            setForgotError(null);
+            setForgotSuccess(null);
+            setView("login");
+          }}
+          className="absolute top-[calc(env(safe-area-inset-top)+12px)] left-[18px]"
+        >
+          <BuscaPetLogo className="w-[45px] h-[34px] text-primary" />
+        </button>
+
+        <div className="mt-[calc(env(safe-area-inset-top)+48px)] flex-1 flex flex-col">
+          <h1 className="text-center font-extrabold text-[30px] font-display text-black mb-10">
+            Recuperar senha
+          </h1>
+
+          <div className="space-y-4">
+            <div className="flex flex-col gap-1.5">
+              <label className="font-semibold text-[14px] font-display text-black">
+                Email
+              </label>
+              <input
+                type="email"
+                value={forgotEmail}
+                onChange={(e) => setForgotEmail(e.target.value)}
+                className="h-[48px] rounded-[8px] border border-[#a9a7a7] px-4 outline-none focus:border-primary transition-colors text-black"
+              />
+            </div>
+          </div>
+
+          {forgotError && (
+            <p className="mt-4 text-[13px] text-destructive font-semibold font-body text-center">
+              {forgotError}
+            </p>
+          )}
+
+          {forgotSuccess && (
+            <p className="mt-4 text-[13px] text-green-700 font-semibold font-body text-center">
+              {forgotSuccess}
+            </p>
+          )}
+
+          <button
+            onClick={handleForgotPasswordSubmit}
+            disabled={forgotLoading}
+            className="w-full h-[48px] bg-primary text-white rounded-[8px] font-bold text-[16px] font-display mt-8 hover:opacity-95 active:scale-[0.98] transition-all flex items-center justify-center disabled:opacity-60"
+          >
+            {forgotLoading ? "Enviando..." : "Enviar link"}
+          </button>
+
+          <div className="mt-6 flex justify-center gap-1 pb-8">
+            <span className="text-[#757575] font-semibold text-[16px] font-display">
+              Lembrou da senha?
+            </span>
+            <button
+              onClick={() => setView("login")}
+              className="text-[#1c5cb5] font-semibold text-[16px] font-display hover:underline underline-offset-2"
+            >
+              Voltar ao login
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (view === "reset") {
+    return (
+      <div className="min-h-[100dvh] bg-white relative w-full overflow-y-auto flex flex-col px-[18px] pt-[env(safe-area-inset-top)] pb-[calc(env(safe-area-inset-bottom)+20px)]">
+        <button
+          onClick={() => {
+            setResetError(null);
+            setResetSuccess(null);
+            setResetForm({ senha: "", confirmarSenha: "" });
+            onExitPasswordRecovery();
+            setView("login");
+          }}
+          className="absolute top-[calc(env(safe-area-inset-top)+12px)] left-[18px]"
+        >
+          <BuscaPetLogo className="w-[45px] h-[34px] text-primary" />
+        </button>
+
+        <div className="mt-[calc(env(safe-area-inset-top)+48px)] flex-1 flex flex-col">
+          <h1 className="text-center font-extrabold text-[30px] font-display text-black mb-10">
+            Redefinir senha
+          </h1>
+
+          <div className="space-y-4">
+            <div className="flex flex-col gap-1.5">
+              <label className="font-semibold text-[14px] font-display text-black">
+                Nova senha
+              </label>
+              <input
+                type="password"
+                value={resetForm.senha}
+                onChange={(e) =>
+                  setResetForm((current) => ({ ...current, senha: e.target.value }))
+                }
+                className="h-[48px] rounded-[8px] border border-[#a9a7a7] px-4 outline-none focus:border-primary transition-colors text-black"
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className="font-semibold text-[14px] font-display text-black">
+                Confirmar senha
+              </label>
+              <input
+                type="password"
+                value={resetForm.confirmarSenha}
+                onChange={(e) =>
+                  setResetForm((current) => ({
+                    ...current,
+                    confirmarSenha: e.target.value,
+                  }))
+                }
+                className="h-[48px] rounded-[8px] border border-[#a9a7a7] px-4 outline-none focus:border-primary transition-colors text-black"
+              />
+            </div>
+          </div>
+
+          {resetError && (
+            <p className="mt-4 text-[13px] text-destructive font-semibold font-body text-center">
+              {resetError}
+            </p>
+          )}
+
+          {resetSuccess && (
+            <p className="mt-4 text-[13px] text-green-700 font-semibold font-body text-center">
+              {resetSuccess}
+            </p>
+          )}
+
+          <button
+            onClick={handleResetPasswordSubmit}
+            disabled={resetLoading}
+            className="w-full h-[48px] bg-primary text-white rounded-[8px] font-bold text-[16px] font-display mt-8 hover:opacity-95 active:scale-[0.98] transition-all flex items-center justify-center disabled:opacity-60"
+          >
+            {resetLoading ? "Salvando..." : "Salvar nova senha"}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (view === "login") {
     return (
       <div className="min-h-[100dvh] bg-white relative w-full overflow-y-auto flex flex-col px-[18px] pt-[env(safe-area-inset-top)] pb-[calc(env(safe-area-inset-bottom)+20px)]">
@@ -650,6 +1094,8 @@ function LoginScreen({
               </label>
               <input
                 type="email"
+                value={loginForm.email}
+                onChange={(e) => updateLoginField("email", e.target.value)}
                 className="h-[48px] rounded-[8px] border border-[#a9a7a7] px-4 outline-none focus:border-primary transition-colors text-black"
               />
             </div>
@@ -659,22 +1105,43 @@ function LoginScreen({
               </label>
               <input
                 type="password"
+                value={loginForm.senha}
+                onChange={(e) => updateLoginField("senha", e.target.value)}
                 className="h-[48px] rounded-[8px] border border-[#a9a7a7] px-4 outline-none focus:border-primary transition-colors text-black"
               />
             </div>
           </div>
 
+          {loginError && (
+            <p className="mt-4 text-[13px] text-destructive font-semibold font-body text-center">
+              {loginError}
+            </p>
+          )}
+
           <div className="flex justify-end mt-3">
-            <button className="text-[#1c5cb5] font-semibold text-[14px] font-display hover:underline">
+            <button
+              onClick={() => {
+                setForgotEmail(loginForm.email);
+                setForgotError(null);
+                setForgotSuccess(null);
+                setView("forgot");
+              }}
+              className="text-[#1c5cb5] font-semibold text-[14px] font-display hover:underline"
+            >
               Esqueceu sua senha?
             </button>
           </div>
 
           <button
-            onClick={onLogin}
-            className="w-full h-[48px] bg-primary text-white rounded-[8px] font-bold text-[16px] font-display mt-12 hover:opacity-95 active:scale-[0.98] transition-all flex items-center justify-center"
+            onClick={handleLoginSubmit}
+            disabled={loginLoading || loginCooldown > 0}
+            className="w-full h-[48px] bg-primary text-white rounded-[8px] font-bold text-[16px] font-display mt-12 hover:opacity-95 active:scale-[0.98] transition-all flex items-center justify-center disabled:opacity-60"
           >
-            Entrar
+            {loginLoading
+              ? "Entrando..."
+              : loginCooldown > 0
+                ? `Aguarde ${loginCooldown}s`
+                : "Entrar"}
           </button>
 
           <div className="mt-6 flex justify-center gap-1">
@@ -908,6 +1375,8 @@ function FeedScreen({
   onOpenProfile,
   onEditLocation,
   user,
+  userCoordinates,
+  locationPermissionDenied,
 }: {
   pets: Pet[];
   petsLoading: boolean;
@@ -915,42 +1384,70 @@ function FeedScreen({
   onOpenProfile: () => void;
   onEditLocation: () => void;
   user: UserData;
+  userCoordinates: Coordinates | null;
+  locationPermissionDenied: boolean;
 }) {
   const [activeFilter, setActiveFilter] = useState<
     "Todos" | "Perdidos" | "Encontrados" | "Cachorros" | "Gatos"
   >("Todos");
+  const [nearbyOnly, setNearbyOnly] = useState(false);
   const [search, setSearch] = useState("");
+  const nearbyRadiusMeters = 5000;
 
-  const filteredPets = pets.filter((pet) => {
-    if (activeFilter === "Todos") return true;
-    if (activeFilter === "Perdidos")
-      return pet.status === PET_STATUS.LOST;
-    if (activeFilter === "Encontrados")
-      return pet.status === PET_STATUS.FOUND;
-    if (activeFilter === "Cachorros")
-      return pet.type === "cachorro";
-    if (activeFilter === "Gatos") return pet.type === "gato";
-    return true;
-  }).filter((pet) => {
-    const q = search.trim().toLowerCase();
-    if (!q) return true;
+  const filteredPets = useMemo(() => {
+    const filtered = pets
+      .filter((pet) => {
+        if (activeFilter === "Todos") return true;
+        if (activeFilter === "Perdidos")
+          return pet.status === PET_STATUS.LOST;
+        if (activeFilter === "Encontrados")
+          return pet.status === PET_STATUS.FOUND;
+        if (activeFilter === "Cachorros")
+          return pet.type === "cachorro";
+        if (activeFilter === "Gatos") return pet.type === "gato";
+        return true;
+      })
+      .filter((pet) => {
+        if (!nearbyOnly || !userCoordinates) return true;
+        if (pet.distanceMeters === null) return false;
+        return pet.distanceMeters <= nearbyRadiusMeters;
+      })
+      .filter((pet) => {
+        const q = search.trim().toLowerCase();
+        if (!q) return true;
 
-    const animalTerms =
-      pet.type === "cachorro"
-        ? "cachorro cao cão dog canino"
-        : pet.type === "gato"
-          ? "gato cat felino"
-          : "pet animal";
+        const animalTerms =
+          pet.type === "cachorro"
+            ? "cachorro cao cão dog canino"
+            : pet.type === "gato"
+              ? "gato cat felino"
+              : "pet animal";
 
-    return (
-      pet.name.toLowerCase().includes(q) ||
-      pet.type.toLowerCase().includes(q) ||
-      animalTerms.includes(q) ||
-      pet.description.toLowerCase().includes(q) ||
-      pet.neighborhood.toLowerCase().includes(q) ||
-      pet.city.toLowerCase().includes(q)
-    );
-  });
+        return (
+          pet.name.toLowerCase().includes(q) ||
+          pet.type.toLowerCase().includes(q) ||
+          animalTerms.includes(q) ||
+          pet.description.toLowerCase().includes(q) ||
+          pet.neighborhood.toLowerCase().includes(q) ||
+          pet.city.toLowerCase().includes(q)
+        );
+      });
+
+    if (!userCoordinates) {
+      return filtered;
+    }
+
+    return [...filtered].sort((a, b) => {
+      const aDistance = a.distanceMeters;
+      const bDistance = b.distanceMeters;
+
+      if (aDistance === null && bDistance === null) return 0;
+      if (aDistance === null) return 1;
+      if (bDistance === null) return -1;
+
+      return aDistance - bDistance;
+    });
+  }, [activeFilter, nearbyOnly, nearbyRadiusMeters, pets, search, userCoordinates]);
 
   const renderFilterContent = (
     filter: "Todos" | "Perdidos" | "Encontrados" | "Cachorros" | "Gatos",
@@ -1045,12 +1542,12 @@ function FeedScreen({
         </div>
 
         {/* Hero */}
-        <div className="relative h-[160px] bg-primary rounded-[16px] overflow-hidden mb-8 flex shadow-md">
+        <div className="relative h-[160px] bg-[#FF9D0B] rounded-[16px] overflow-hidden mb-8 flex shadow-md">
           <div className="flex-[1.3] p-5 flex flex-col justify-center z-10 relative">
-            <div className="absolute inset-0 bg-gradient-to-r from-primary to-primary/40 z-0" />
+            <div className="absolute inset-0 bg-gradient-to-r from-[#FF9D0B] to-[#FF9D0B]/40 z-0" />
             <div className="relative z-10">
               <BuscaPetLogo className="w-[85px] h-[64px] text-white mb-3" />
-              <p className="text-[11px] text-primary-foreground/90 font-body leading-snug w-[95%]">
+              <p className="text-[11px] text-white font-semibold font-['Poppins',sans-serif] leading-snug w-[95%]">
                 Ajude a reunir famílias e seus melhores amigos.
               </p>
             </div>
@@ -1079,6 +1576,18 @@ function FeedScreen({
           </div>
 
           <div className="flex gap-1.5 sm:gap-2 overflow-x-auto pb-2 px-0 sm:px-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+            <button
+              onClick={() => setNearbyOnly((current) => !current)}
+              className={`px-2.5 sm:px-4 py-1 sm:py-1.5 rounded-full font-bold text-[11px] sm:text-[13px] font-display whitespace-nowrap transition-colors inline-flex items-center gap-1 sm:gap-1.5 ${
+                nearbyOnly
+                  ? "bg-[#1F9D60] text-white shadow-sm"
+                  : "bg-muted text-muted-foreground hover:bg-border/30"
+              }`}
+            >
+              <MapPin size={14} strokeWidth={2.2} />
+              <span>Perto de mim</span>
+            </button>
+
             {(
               [
                 "Todos",
@@ -1101,6 +1610,14 @@ function FeedScreen({
               </button>
             ))}
           </div>
+
+          {nearbyOnly && !userCoordinates && (
+            <p className="text-[11px] sm:text-[12px] text-muted-foreground mt-2 px-1 font-body">
+              {locationPermissionDenied
+                ? "Localizacao negada. Mostrando todos os pets normalmente."
+                : "Ative sua localizacao para filtrar por proximidade. Mostrando todos os pets normalmente."}
+            </p>
+          )}
         </div>
 
         {/* Pets List - Responsive gap */}
@@ -1342,6 +1859,11 @@ function ReportScreen({
   const [descricao, setDescricao] = useState("");
   const [cidade, setCidade] = useState(user.city || "");
   const [bairro, setBairro] = useState(user.bairro || "");
+  const [lastSeenLocation, setLastSeenLocation] = useState("");
+  const [lastSeenAtInput, setLastSeenAtInput] = useState("");
+  const [petCoordinates, setPetCoordinates] = useState<Coordinates | null>(null);
+  const [locationLoading, setLocationLoading] = useState(false);
+  const [locationStatus, setLocationStatus] = useState<string | null>(null);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -1349,9 +1871,78 @@ function ReportScreen({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    setCidade((current) => (current ? current : user.city || ""));
-    setBairro((current) => (current ? current : user.bairro || ""));
+    setCidade((current: string) => (current ? current : user.city || ""));
+    setBairro((current: string) => (current ? current : user.bairro || ""));
   }, [user.city, user.bairro]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !navigator.geolocation) {
+      setLocationStatus("Geolocalizacao indisponivel no dispositivo.");
+      return;
+    }
+
+    let cancelled = false;
+    setLocationLoading(true);
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        if (cancelled) return;
+
+        const coords = {
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+        };
+
+        setPetCoordinates(coords);
+        setLocationStatus("📍 Localizacao detectada");
+
+        try {
+          const detected = await reverseGeocode(coords);
+          if (cancelled) return;
+
+          if (detected.city) {
+            setCidade((current: string) => current || detected.city || "");
+          }
+
+          if (detected.neighborhood) {
+            setBairro((current: string) => current || detected.neighborhood || "");
+          }
+
+          const label = detected.city || detected.neighborhood;
+          if (label) {
+            setLocationStatus(`📍 ${label}`);
+          }
+        } catch {
+          if (!cancelled) {
+            setLocationStatus("📍 Localizacao detectada");
+          }
+        } finally {
+          if (!cancelled) {
+            setLocationLoading(false);
+          }
+        }
+      },
+      (error) => {
+        if (cancelled) return;
+
+        if (error.code === 1) {
+          setLocationStatus("Permita localizacao para salvar o ponto exato do pet.");
+        } else {
+          setLocationStatus("Nao foi possivel obter localizacao automatica.");
+        }
+        setLocationLoading(false);
+      },
+      {
+        enableHighAccuracy: false,
+        timeout: 10000,
+        maximumAge: 1000 * 60 * 5,
+      },
+    );
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Revoke object URL on unmount or when preview changes to avoid memory leaks
   useEffect(() => {
@@ -1369,11 +1960,20 @@ function ReportScreen({
   };
 
   const handlePublicar = async () => {
-    if (!cidade.trim()) {
+    const cityInput = cidade.trim();
+    const neighborhoodInput = bairro.trim();
+    const lastSeenLocationInput = lastSeenLocation.trim();
+    const parsedLastSeenAt = lastSeenAtInput ? new Date(lastSeenAtInput) : null;
+    const lastSeenAt =
+      parsedLastSeenAt && Number.isFinite(parsedLastSeenAt.getTime())
+        ? parsedLastSeenAt.toISOString()
+        : null;
+
+    if (!cityInput) {
       setSubmitError("Informe a cidade onde o pet foi visto por último.");
       return;
     }
-    if (!bairro.trim()) {
+    if (!neighborhoodInput) {
       setSubmitError("Informe a localização onde o pet foi visto por último.");
       return;
     }
@@ -1392,14 +1992,32 @@ function ReportScreen({
     }
 
     try {
+      let coordinatesToSave = petCoordinates;
+
+      if (!coordinatesToSave) {
+        console.info("[geo-debug] iniciando geocode", {
+          city: cityInput,
+          neighborhood: neighborhoodInput,
+        });
+
+        const geocodedCoordinates = await geocodeAddress(cityInput, neighborhoodInput);
+
+        if (geocodedCoordinates) {
+          coordinatesToSave = geocodedCoordinates;
+          console.info("[geo-debug] usando coordenadas aproximadas", geocodedCoordinates);
+        } else {
+          console.warn("[geo-debug] fallback null");
+        }
+      }
+
       const { error } = await createPet({
         user_id: authUserId,
         nome: nome.trim() || "Sem nome",
         tipo: petType,
         descricao: descricao.trim() || null,
-        last_seen: bairro.trim(),
-        cidade: cidade.trim(),
-        bairro: bairro.trim(),
+        last_seen: neighborhoodInput,
+        cidade: cityInput,
+        bairro: neighborhoodInput,
         owner_name: user.name?.trim() || null,
         owner_phone: user.phone?.trim() || null,
         sexo,
@@ -1407,6 +2025,11 @@ function ReportScreen({
         recompensa: reward === "Sim",
         status: PET_STATUS.LOST,
         foto_url: fotoUrl,
+        latitude: coordinatesToSave?.latitude ?? null,
+        longitude: coordinatesToSave?.longitude ?? null,
+        last_seen_city: lastSeenLocationInput ? cityInput : null,
+        last_seen_neighborhood: lastSeenLocationInput || null,
+        last_seen_at: lastSeenAt,
       });
       if (error) throw new Error(error.message);
       onSuccess();
@@ -1627,6 +2250,35 @@ function ReportScreen({
               className="w-full h-[52px] bg-card rounded-[12px] border border-border/60 pl-11 pr-4 outline-none focus:border-primary focus:ring-1 focus:ring-primary text-base font-body"
             />
           </div>
+          {(locationLoading || locationStatus) && (
+            <p className="text-[11px] text-muted-foreground font-body mt-2">
+              {locationLoading ? "Detectando localizacao..." : locationStatus}
+            </p>
+          )}
+        </div>
+
+        <div>
+          <label className="block text-[13px] font-bold font-display mb-1.5 text-foreground/80">
+            Último local visto (opcional)
+          </label>
+          <input
+            value={lastSeenLocation}
+            onChange={(e) => setLastSeenLocation(e.target.value)}
+            placeholder="Ex: Centro, Russas"
+            className="w-full h-[52px] bg-card rounded-[12px] border border-border/60 px-4 outline-none focus:border-primary focus:ring-1 focus:ring-primary text-base font-body"
+          />
+        </div>
+
+        <div>
+          <label className="block text-[13px] font-bold font-display mb-1.5 text-foreground/80">
+            Quando foi visto? (opcional)
+          </label>
+          <input
+            type="datetime-local"
+            value={lastSeenAtInput}
+            onChange={(e) => setLastSeenAtInput(e.target.value)}
+            className="w-full h-[52px] bg-card rounded-[12px] border border-border/60 px-4 outline-none focus:border-primary focus:ring-1 focus:ring-primary text-base font-body"
+          />
         </div>
 
         <div>
@@ -2293,7 +2945,10 @@ function MyPetsScreen({
 // ─── App ──────────────────────────────────────────────────────────────────────
 
 export default function App() {
+  const [userCoordinates, setUserCoordinates] = useState<Coordinates | null>(null);
+  const [locationPermissionDenied, setLocationPermissionDenied] = useState(false);
   const [screen, setScreen] = useState<Screen>("onboarding");
+  const [passwordRecoveryFlow, setPasswordRecoveryFlow] = useState(false);
   const [selectedPet, setSelectedPet] = useState<Pet | null>(null);
   const [editingPet, setEditingPet] = useState<Pet | null>(null);
   const [petActionLoadingId, setPetActionLoadingId] = useState<string | null>(null);
@@ -2309,11 +2964,58 @@ export default function App() {
   } = useProfile();
   const { pets: dbPets, loading: petsLoading, refetch: refetchPets } = usePets();
   const { pets: myPets, loading: myPetsLoading, error: myPetsError, refetch: refetchMyPets } = useMyPets(user?.id);
-  const displayPets = dbPets.map(mapDbPetToDisplay);
-  const displayMyPets = myPets.map(mapDbPetToDisplay);
+  const displayPets = useMemo(
+    () => dbPets.map((pet: DbPet) => mapDbPetToDisplay(pet, userCoordinates)),
+    [dbPets, userCoordinates],
+  );
+  const displayMyPets = useMemo(
+    () => myPets.map((pet: DbPet) => mapDbPetToDisplay(pet, userCoordinates)),
+    [myPets, userCoordinates],
+  );
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !navigator.geolocation) return;
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setLocationPermissionDenied(false);
+        setUserCoordinates({
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+        });
+      },
+      (error) => {
+        if (error.code === 1) {
+          setLocationPermissionDenied(true);
+        }
+        // Keep UI working even when user denies location.
+      },
+      {
+        enableHighAccuracy: false,
+        timeout: 10000,
+        maximumAge: 1000 * 60 * 10,
+      },
+    );
+  }, []);
+
+  useEffect(() => {
+    const readRecoveryFlow = () => {
+      const hash = typeof window !== "undefined" ? window.location.hash : "";
+      setPasswordRecoveryFlow(hash.includes("type=recovery"));
+    };
+
+    readRecoveryFlow();
+    window.addEventListener("hashchange", readRecoveryFlow);
+    return () => window.removeEventListener("hashchange", readRecoveryFlow);
+  }, []);
 
   useEffect(() => {
     if (!authReady) return;
+
+    if (passwordRecoveryFlow) {
+      setScreen("login");
+      return;
+    }
 
     if (user) {
       setScreen((current) =>
@@ -2325,7 +3027,7 @@ export default function App() {
     setScreen((current) =>
       current === "onboarding" ? "onboarding" : "login",
     );
-  }, [authReady, user]);
+  }, [authReady, passwordRecoveryFlow, user]);
 
   useEffect(() => {
     if (!authReady || profileLoading || user) return;
@@ -2456,6 +3158,49 @@ export default function App() {
     handleNavigate("login");
   };
 
+  const clearRecoveryHash = () => {
+    if (typeof window === "undefined") return;
+    if (!window.location.hash.includes("type=recovery")) return;
+    window.history.replaceState(
+      null,
+      document.title,
+      `${window.location.pathname}${window.location.search}`,
+    );
+    setPasswordRecoveryFlow(false);
+  };
+
+  const handleLogin = async (payload: { email: string; senha: string }) => {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: payload.email,
+      password: payload.senha,
+    });
+
+    if (error) {
+      if (isRateLimitError(error)) {
+        throw new Error("RATE_LIMIT_LOGIN");
+      }
+
+      const message = (error.message || "").toLowerCase();
+      if (
+        message.includes("invalid login credentials") ||
+        message.includes("email not confirmed") ||
+        message.includes("invalid credentials")
+      ) {
+        throw new Error("Email ou senha invalidos.");
+      }
+
+      throw new Error(error.message || "Nao foi possivel entrar.");
+    }
+
+    const sessionUser = data.session?.user ?? data.user;
+    if (!sessionUser) {
+      throw new Error("Nao foi possivel iniciar sua sessao.");
+    }
+
+    await syncUserFromAuth(sessionUser);
+    handleNavigate("feed");
+  };
+
   const handleRegister = async (payload: {
     nome: string;
     email: string;
@@ -2492,13 +3237,7 @@ export default function App() {
     });
 
     if (error) {
-      const errorStatus = (error as { status?: number }).status;
-      const message = (error.message || "").toLowerCase();
-      if (
-        errorStatus === 429 ||
-        message.includes("too many requests") ||
-        message.includes("rate limit")
-      ) {
+      if (isRateLimitError(error)) {
         throw new Error("RATE_LIMIT_SIGNUP");
       }
       throw new Error(error.message);
@@ -2521,6 +3260,40 @@ export default function App() {
 
     window.alert("Conta criada! Confirme seu email para entrar.");
     handleNavigate("login");
+  };
+
+  const handleRequestPasswordReset = async (email: string) => {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo:
+        typeof window !== "undefined" ? window.location.origin : undefined,
+    });
+
+    if (error) {
+      if (isRateLimitError(error)) {
+        throw new Error("Muitas tentativas. Aguarde antes de reenviar.");
+      }
+      throw new Error(error.message || "Nao foi possivel enviar o email.");
+    }
+  };
+
+  const handleUpdatePassword = async (password: string) => {
+    const { data, error } = await supabase.auth.updateUser({ password });
+    if (error) {
+      const message = (error.message || "").toLowerCase();
+      if (message.includes("session") || message.includes("token")) {
+        throw new Error("Link expirado. Solicite uma nova recuperacao de senha.");
+      }
+      throw new Error(error.message || "Nao foi possivel atualizar a senha.");
+    }
+
+    const sessionUser = data.user;
+    if (!sessionUser) {
+      throw new Error("Nao foi possivel atualizar a sessao apos redefinir senha.");
+    }
+
+    await syncUserFromAuth(sessionUser);
+    clearRecoveryHash();
+    handleNavigate("feed");
   };
 
   const showCompleteProfileModal =
@@ -2546,16 +3319,12 @@ export default function App() {
         )}
         {screen === "login" && (
           <LoginScreen
-            onLogin={async () => {
-              const {
-                data: { session },
-              } = await supabase.auth.getSession();
-              if (session?.user) {
-                await syncUserFromAuth(session.user);
-                handleNavigate("feed");
-              }
-            }}
+            onLogin={handleLogin}
             onRegister={handleRegister}
+            onRequestPasswordReset={handleRequestPasswordReset}
+            onUpdatePassword={handleUpdatePassword}
+            forceResetPassword={passwordRecoveryFlow}
+            onExitPasswordRecovery={clearRecoveryHash}
           />
         )}
         {screen === "feed" && user && (
@@ -2566,6 +3335,8 @@ export default function App() {
             onOpenProfile={() => handleNavigate("profile")}
             onEditLocation={() => handleNavigate("profile")}
             user={user}
+            userCoordinates={userCoordinates}
+            locationPermissionDenied={locationPermissionDenied}
           />
         )}
         {screen === "detail" && selectedPet && profileComplete && (
