@@ -7,7 +7,9 @@ import {
   getProfile,
   isProfileComplete,
   isProfileCompleteFromAuth,
+  saveProfileAvatar,
   saveProfileLocation,
+  uploadProfileAvatar,
 } from "@/services/profileService";
 import type { Profile, ProfileLocationInput } from "@/types/profile";
 
@@ -100,6 +102,45 @@ export function useProfile() {
     [authUser],
   );
 
+  const updateAvatar = useCallback(
+    async (file: File) => {
+      let sessionUser = authUser;
+
+      if (!sessionUser) {
+        const {
+          data: { user: fetchedUser },
+          error: userError,
+        } = await supabase.auth.getUser();
+
+        if (userError) {
+          throw new Error(userError.message);
+        }
+
+        if (!fetchedUser) {
+          throw new Error("Usuário não autenticado.");
+        }
+
+        sessionUser = fetchedUser;
+        setAuthUser(fetchedUser);
+      }
+
+      const { url, error: uploadError } = await uploadProfileAvatar(file, sessionUser.id);
+      if (uploadError || !url) {
+        throw new Error(uploadError?.message || "Não foi possível enviar a imagem.");
+      }
+
+      const { data, error } = await saveProfileAvatar(sessionUser, url);
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      setProfile(data);
+      setUser(mapProfileToUserData(sessionUser, data));
+      return data;
+    },
+    [authUser],
+  );
+
   const clearUser = useCallback(() => {
     setUser(null);
     setAuthUser(null);
@@ -171,6 +212,7 @@ export function useProfile() {
     profileComplete,
     syncUserFromAuth,
     completeProfile,
+    updateAvatar,
     clearUser,
   };
 }

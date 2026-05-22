@@ -138,6 +138,192 @@ const DOG_PLACEHOLDER =
   "https://images.unsplash.com/photo-1552053831-71594a27632d?w=600&h=400&fit=crop&auto=format";
 const CAT_PLACEHOLDER =
   "https://images.unsplash.com/photo-1574158622682-e40e69881006?w=600&h=400&fit=crop&auto=format";
+const CEARA_CITIES = [
+  "Abaiara",
+  "Acarape",
+  "Acaraú",
+  "Acopiara",
+  "Aiuaba",
+  "Alcântaras",
+  "Altaneira",
+  "Alto Santo",
+  "Amontada",
+  "Antonina do Norte",
+  "Apuiarés",
+  "Aquiraz",
+  "Aracati",
+  "Aracoiaba",
+  "Ararendá",
+  "Araripe",
+  "Aratuba",
+  "Arneiroz",
+  "Assaré",
+  "Aurora",
+  "Baixio",
+  "Banabuiú",
+  "Barbalha",
+  "Barreira",
+  "Barro",
+  "Barroquinha",
+  "Baturité",
+  "Beberibe",
+  "Bela Cruz",
+  "Boa Viagem",
+  "Brejo Santo",
+  "Camocim",
+  "Campos Sales",
+  "Canindé",
+  "Capistrano",
+  "Caridade",
+  "Cariré",
+  "Caririaçu",
+  "Cariús",
+  "Carnaubal",
+  "Cascavel",
+  "Catarina",
+  "Catunda",
+  "Caucaia",
+  "Cedro",
+  "Chaval",
+  "Choró",
+  "Chorozinho",
+  "Coreaú",
+  "Crateús",
+  "Crato",
+  "Croatá",
+  "Cruz",
+  "Deputado Irapuan Pinheiro",
+  "Ereré",
+  "Eusébio",
+  "Farias Brito",
+  "Forquilha",
+  "Fortaleza",
+  "Fortim",
+  "Frecheirinha",
+  "General Sampaio",
+  "Graça",
+  "Granja",
+  "Granjeiro",
+  "Groaíras",
+  "Guaiúba",
+  "Guaraciaba do Norte",
+  "Guaramiranga",
+  "Hidrolândia",
+  "Horizonte",
+  "Ibaretama",
+  "Ibiapina",
+  "Ibicuitinga",
+  "Icapuí",
+  "Icó",
+  "Iguatu",
+  "Independência",
+  "Ipaporanga",
+  "Ipaumirim",
+  "Ipu",
+  "Ipueiras",
+  "Iracema",
+  "Irauçuba",
+  "Itaiçaba",
+  "Itaitinga",
+  "Itapajé",
+  "Itapipoca",
+  "Itapiúna",
+  "Itarema",
+  "Itatira",
+  "Jaguaretama",
+  "Jaguaribara",
+  "Jaguaribe",
+  "Jaguaruana",
+  "Jardim",
+  "Jati",
+  "Jijoca de Jericoacoara",
+  "Juazeiro do Norte",
+  "Jucás",
+  "Lavras da Mangabeira",
+  "Limoeiro do Norte",
+  "Madalena",
+  "Maracanaú",
+  "Maranguape",
+  "Marco",
+  "Martinópole",
+  "Massapê",
+  "Mauriti",
+  "Meruoca",
+  "Milagres",
+  "Milhã",
+  "Miraíma",
+  "Missão Velha",
+  "Mombaça",
+  "Monsenhor Tabosa",
+  "Morada Nova",
+  "Moraújo",
+  "Morrinhos",
+  "Mucambo",
+  "Mulungu",
+  "Nova Olinda",
+  "Nova Russas",
+  "Novo Oriente",
+  "Ocara",
+  "Orós",
+  "Pacajus",
+  "Pacatuba",
+  "Pacoti",
+  "Pacujá",
+  "Palhano",
+  "Palmácia",
+  "Paracuru",
+  "Paraipaba",
+  "Parambu",
+  "Paramoti",
+  "Pedra Branca",
+  "Penaforte",
+  "Pentecoste",
+  "Pereiro",
+  "Pindoretama",
+  "Piquet Carneiro",
+  "Pires Ferreira",
+  "Poranga",
+  "Porteiras",
+  "Potengi",
+  "Potiretama",
+  "Quiterianópolis",
+  "Quixadá",
+  "Quixelô",
+  "Quixeramobim",
+  "Quixeré",
+  "Redenção",
+  "Reriutaba",
+  "Russas",
+  "Saboeiro",
+  "Salitre",
+  "Santa Quitéria",
+  "Santana do Acaraú",
+  "Santana do Cariri",
+  "São Benedito",
+  "São Gonçalo do Amarante",
+  "São João do Jaguaribe",
+  "São Luís do Curu",
+  "Senador Pompeu",
+  "Senador Sá",
+  "Sobral",
+  "Solonópole",
+  "Tabuleiro do Norte",
+  "Tamboril",
+  "Tarrafas",
+  "Tauá",
+  "Tejuçuoca",
+  "Tianguá",
+  "Trairi",
+  "Tururu",
+  "Ubajara",
+  "Umari",
+  "Umirim",
+  "Uruburetama",
+  "Uruoca",
+  "Varjota",
+  "Várzea Alegre",
+  "Viçosa do Ceará",
+] as const;
 
 function resolvePetPhotoUrl(dbPet: DbPet): string {
   if (!dbPet.foto_url) {
@@ -1256,12 +1442,18 @@ function LoginScreen({
               <label className="font-semibold text-[14px] font-display text-black">
                 Cidade
               </label>
-              <input
-                type="text"
+              <select
                 value={registerForm.cidade}
                 onChange={(e) => updateRegisterField("cidade", e.target.value)}
                 className="h-[48px] rounded-[8px] border border-[#a9a7a7] px-4 outline-none focus:border-primary transition-colors text-black"
-              />
+              >
+                <option value="">Selecione sua cidade</option>
+                {CEARA_CITIES.map((city) => (
+                  <option key={city} value={city}>
+                    {city}
+                  </option>
+                ))}
+              </select>
             </div>
             <div className="flex flex-col gap-1.5">
               <label className="font-semibold text-[14px] font-display text-black">
@@ -2418,6 +2610,7 @@ function ProfileScreen({
   onBack,
   onOpenMyPets,
   onSaveProfile,
+  onSaveAvatar,
   onLogout,
 }: {
   user: UserData;
@@ -2428,6 +2621,7 @@ function ProfileScreen({
     cidade: string;
     bairro: string;
   }) => Promise<void>;
+  onSaveAvatar: (file: File) => Promise<void>;
   onLogout: () => void;
 }) {
   const [isEditing, setIsEditing] = useState(false);
@@ -2435,7 +2629,9 @@ function ProfileScreen({
   const [cidade, setCidade] = useState(user.city);
   const [bairro, setBairro] = useState(user.bairro);
   const [saving, setSaving] = useState(false);
+  const [avatarSaving, setAvatarSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setTelefone(user.phone);
@@ -2457,6 +2653,28 @@ function ProfileScreen({
       );
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleAvatarChange = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+
+    setAvatarSaving(true);
+    setSaveError(null);
+    try {
+      await onSaveAvatar(file);
+    } catch (err) {
+      setSaveError(
+        err instanceof Error
+          ? err.message
+          : "Não foi possível atualizar a foto de perfil.",
+      );
+    } finally {
+      setAvatarSaving(false);
     }
   };
 
@@ -2493,11 +2711,23 @@ function ProfileScreen({
           />
           <button
             type="button"
-            onClick={() => setIsEditing((current) => !current)}
+            onClick={() => fileInputRef.current?.click()}
+            disabled={avatarSaving}
             className="absolute bottom-0 right-0 w-10 h-10 bg-primary rounded-full flex items-center justify-center text-white border-2 border-background shadow-md"
           >
-            <Edit size={18} strokeWidth={2} />
+            {avatarSaving ? (
+              <span className="w-5 h-5 rounded-full border-2 border-white border-t-transparent animate-spin" />
+            ) : (
+              <Camera size={18} strokeWidth={2} />
+            )}
           </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/png,image/jpeg,image/webp"
+            onChange={handleAvatarChange}
+            className="hidden"
+          />
         </div>
         <h2 className="font-extrabold text-[24px] font-display text-foreground">
           {user.name}
@@ -2508,9 +2738,21 @@ function ProfileScreen({
       </div>
 
       <div className="px-6 space-y-4 safe-area-left safe-area-right">
-        <h3 className="font-extrabold text-[16px] font-display text-muted-foreground uppercase tracking-wider mb-2">
-          Dados Pessoais
-        </h3>
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="font-extrabold text-[16px] font-display text-muted-foreground uppercase tracking-wider">
+            Dados Pessoais
+          </h3>
+          <button
+            type="button"
+            onClick={() => {
+              setIsEditing((current) => !current);
+              setSaveError(null);
+            }}
+            className="text-[12px] font-bold font-display text-primary"
+          >
+            {isEditing ? "Fechar edição" : "Editar dados"}
+          </button>
+        </div>
 
         {isEditing && (
           <div className="bg-card border border-border/40 rounded-[16px] p-4 space-y-3">
@@ -2957,6 +3199,7 @@ export default function App() {
     profileComplete,
     syncUserFromAuth,
     completeProfile,
+    updateAvatar,
     clearUser,
   } = useProfile();
   const { pets: dbPets, loading: petsLoading, refetch: refetchPets } = usePets();
@@ -3348,6 +3591,7 @@ export default function App() {
             onBack={() => handleNavigate("feed")}
             onOpenMyPets={() => handleNavigate("my-pets")}
             onSaveProfile={completeProfile}
+            onSaveAvatar={updateAvatar}
             onLogout={handleLogout}
           />
         )}
