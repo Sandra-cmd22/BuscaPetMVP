@@ -1695,8 +1695,9 @@ function DetailScreen({
           <Eye size={18} strokeWidth={2.2} />
         </button>
         <button
+          type="button"
           onClick={onBack}
-          className="absolute top-6 sm:top-8 md:top-10 left-3 sm:left-4 w-9 sm:w-10 h-9 sm:h-10 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white z-20 hover:bg-white/30 active:scale-90 transition-all"
+          className="absolute top-[calc(env(safe-area-inset-top)+10px)] left-3 sm:left-4 w-9 sm:w-10 h-9 sm:h-10 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white z-30 hover:bg-white/30 active:scale-90 transition-all"
         >
           <ChevronLeft size={20} strokeWidth={2.5} className="sm:w-6 sm:h-6" />
         </button>
@@ -1720,7 +1721,7 @@ function DetailScreen({
         </div>
 
         {/* Tags - Responsive */}
-        <div className="flex gap-2 sm:gap-3 mb-6 sm:mb-8 overflow-x-auto pb-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+        <div className="flex gap-2 sm:gap-3 mb-5 sm:mb-6 overflow-x-auto pb-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
           <div className="bg-primary/10 text-primary text-[11px] sm:text-[12px] md:text-[13px] font-bold py-1 sm:py-1.5 px-3 sm:px-5 rounded-full font-body whitespace-nowrap">
             {pet.type === "gato" ? "Gato" : "Cachorro"}
           </div>
@@ -1733,7 +1734,7 @@ function DetailScreen({
         </div>
 
         {/* About section */}
-        <div className="mb-8 sm:mb-10">
+        <div className="mb-5 sm:mb-6">
           <h4 className="font-extrabold text-base sm:text-lg md:text-[18px] mb-2 sm:mb-3 font-display text-foreground">
             Sobre
           </h4>
