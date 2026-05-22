@@ -49,10 +49,6 @@ export function useProfile() {
           );
         } else {
           existing = created;
-          const fetched = await getProfile(sessionUser.id);
-          if (!fetched.error) {
-            existing = fetched.data ?? existing;
-          }
         }
       }
 
@@ -148,22 +144,16 @@ export function useProfile() {
   }, []);
 
   useEffect(() => {
-    const applySession = async (session: Session | null) => {
-      try {
-        if (session?.user) {
-          await syncUserFromAuth(session.user);
-        } else {
-          clearUser();
-        }
-      } catch (err) {
-        console.error("[useProfile] applySession:", err);
-        if (session?.user) {
-          setAuthUser(session.user);
-          setUser(mapProfileToUserData(session.user, null));
-        } else {
-          clearUser();
-        }
+    const applySession = (session: Session | null) => {
+      if (session?.user) {
+        // Make auth feel instant after OAuth redirect while profile data syncs in background.
+        setAuthUser(session.user);
+        setUser(mapProfileToUserData(session.user, null));
+        void syncUserFromAuth(session.user);
+        return;
       }
+
+      clearUser();
     };
 
     const init = async () => {
@@ -173,22 +163,30 @@ export function useProfile() {
         } = await supabase.auth.getSession();
 
         if (session?.user) {
-          await applySession(session);
-        } else {
-          // Fallback for OAuth redirects where session persistence can settle moments later.
-          const {
-            data: { user: currentUser },
-          } = await supabase.auth.getUser();
-          if (currentUser) {
-            await syncUserFromAuth(currentUser);
-          } else {
-            await applySession(null);
-          }
+          applySession(session);
+          setAuthReady(true);
+          return;
         }
+
+        // Fallback for OAuth redirects where session persistence can settle moments later.
+        const {
+          data: { user: currentUser },
+        } = await supabase.auth.getUser();
+
+        if (currentUser) {
+          setAuthUser(currentUser);
+          setUser(mapProfileToUserData(currentUser, null));
+          void syncUserFromAuth(currentUser);
+        } else {
+          applySession(null);
+        }
+
+        setAuthReady(true);
       } catch (err) {
         console.error("[useProfile] init:", err);
-      } finally {
         setAuthReady(true);
+      } finally {
+        // no-op
       }
     };
 
