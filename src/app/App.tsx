@@ -1678,9 +1678,9 @@ function DetailScreen({
   const whatsappLink = canContact ? `https://wa.me/${normalizedPhone}` : "";
 
   return (
-    <div className="min-h-screen bg-background pb-[100px] relative safe-area-top">
+    <div className="min-h-screen bg-background pb-[calc(58px+env(safe-area-inset-bottom)+12px)] relative safe-area-top">
       {/* Header Image - Responsive height */}
-      <div className="relative h-[240px] sm:h-[300px] md:h-[340px] bg-muted w-full">
+      <div className="relative h-[300px] sm:h-[360px] md:h-[420px] bg-muted w-full">
         <img
           src={pet.photo}
           className="w-full h-full object-cover"
@@ -1690,7 +1690,7 @@ function DetailScreen({
         <button
           type="button"
           onClick={() => setIsImageModalOpen(true)}
-          className="absolute bottom-3 right-2 sm:bottom-4 sm:right-3 bg-black/45 backdrop-blur-sm text-white rounded-full p-2.5 z-20 hover:bg-black/60 active:scale-95 transition-all"
+          className="absolute bottom-[20px] sm:bottom-[24px] right-[16px] sm:right-[20px] bg-black/45 backdrop-blur-sm text-white rounded-full p-2.5 z-20 hover:bg-black/60 active:scale-95 transition-all"
           aria-label="Ver imagem completa"
         >
           <Eye size={18} strokeWidth={2.2} />
@@ -1704,7 +1704,7 @@ function DetailScreen({
       </div>
 
       {/* Content Sheet - Responsive padding */}
-      <div className="bg-background rounded-t-[24px] sm:rounded-t-[32px] -mt-[30px] sm:-mt-[40px] relative z-10 pt-6 sm:pt-8 px-4 sm:px-6 shadow-[0_-8px_20px_rgba(0,0,0,0.08)] min-h-[500px] safe-area-left safe-area-right">
+      <div className="bg-background rounded-t-[24px] sm:rounded-t-[32px] -mt-[16px] sm:-mt-[22px] relative z-10 pt-6 sm:pt-8 px-4 sm:px-6 shadow-[0_-8px_20px_rgba(0,0,0,0.08)] safe-area-left safe-area-right">
         {/* Header section - Responsive typography */}
         <div className="flex justify-between items-start mb-4 sm:mb-6 gap-3">
           <div className="min-w-0 flex-1">
