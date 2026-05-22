@@ -41,7 +41,6 @@ import {
   Home,
   User,
   PlusCircle,
-  Heart,
   MessageCircle,
   Eye,
   X,
@@ -1706,7 +1705,7 @@ function DetailScreen({
       {/* Content Sheet - Responsive padding */}
       <div className="bg-background rounded-t-[24px] sm:rounded-t-[32px] -mt-[16px] sm:-mt-[22px] relative z-10 pt-6 sm:pt-8 px-4 sm:px-6 shadow-[0_-8px_20px_rgba(0,0,0,0.08)] safe-area-left safe-area-right">
         {/* Header section - Responsive typography */}
-        <div className="flex justify-between items-start mb-4 sm:mb-6 gap-3">
+        <div className="mb-4 sm:mb-6">
           <div className="min-w-0 flex-1">
             <h1 className="font-extrabold text-xl sm:text-2xl md:text-[32px] font-display text-foreground leading-tight sm:leading-none mb-1 uppercase tracking-tight truncate">
               {pet.name}
@@ -1718,9 +1717,6 @@ function DetailScreen({
               <span className="truncate">{pet.neighborhood}</span>
             </p>
           </div>
-          <button className="w-10 sm:w-12 h-10 sm:h-12 rounded-full bg-muted flex items-center justify-center text-primary shrink-0 active:scale-90 transition-transform">
-            <Heart size={20} strokeWidth={2} className="sm:w-6 sm:h-6" />
-          </button>
         </div>
 
         {/* Tags - Responsive */}
@@ -1758,7 +1754,7 @@ function DetailScreen({
         </div>
 
         {/* Contact Info */}
-        <div className="mb-8 sm:mb-10">
+        <div className="mb-4 sm:mb-5">
           <h4 className="font-extrabold text-base sm:text-lg md:text-[18px] flex items-center gap-2 mb-3 sm:mb-4 font-display text-foreground">
             <MessageCircle size={18} className="sm:w-5 sm:h-5 text-primary" />{" "}
             Informações
@@ -1823,7 +1819,7 @@ function DetailScreen({
           <button
             type="button"
             onClick={() => setIsImageModalOpen(false)}
-            className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/20 text-white flex items-center justify-center hover:bg-white/30 active:scale-95 transition-transform"
+            className="absolute top-[calc(env(safe-area-inset-top)+12px)] right-[calc(env(safe-area-inset-right)+12px)] w-10 h-10 rounded-full bg-white/20 text-white flex items-center justify-center hover:bg-white/30 active:scale-95 transition-transform"
             aria-label="Fechar visualização"
           >
             <X size={20} strokeWidth={2.4} />
